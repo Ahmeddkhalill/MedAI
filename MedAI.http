@@ -1,0 +1,6 @@
+@MedAI_HostAddress = http://localhost:5212
+
+GET {{MedAI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
