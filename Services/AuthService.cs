@@ -17,17 +17,13 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
         if (!isValidPassword)
             return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
 
-        var (token, expiresIn) = _jwtProvider.GenerateToken(user);
-
-        var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
-
-        return Result.Success(response);
+        return GenerateAuthResult(user);
     }
 
     public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
-    { 
+    {
         var emailExists = await _userManager.Users.AnyAsync(x => x.Email == request.Email, cancellationToken);
-        
+
         if (emailExists)
             return Result.Failure<AuthResponse>(UserErrors.DuplicatedEmail);
 
@@ -35,15 +31,19 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
 
         var result = await _userManager.CreateAsync(user, request.Password);
 
-        if (result.Succeeded)
+        if (!result.Succeeded)
         {
-            var (token, expiresIn) = _jwtProvider.GenerateToken(user);
-            var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
-            return Result.Success(response);
+            var error = result.Errors.First();
+            return Result.Failure<AuthResponse>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
         }
 
-        var error = result.Errors.First();
+        return GenerateAuthResult(user);
+    }
 
-        return Result.Failure<AuthResponse>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+    private Result<AuthResponse> GenerateAuthResult(ApplicationUser user)
+    {
+        var (token, expiresIn) = _jwtProvider.GenerateToken(user);
+        var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
+        return Result.Success(response);
     }
 }
