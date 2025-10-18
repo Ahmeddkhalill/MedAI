@@ -1,6 +1,8 @@
-﻿using FluentValidation;
-using MapsterMapper;
+﻿using MapsterMapper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
+using System.Text;
 
 namespace MedAI;
 
@@ -10,12 +12,16 @@ public static class DependencyInjection
     {
         services.AddControllers();
 
+        services.AddAuthConfigurations(configuration);
+
         services.AddOpenApi();
 
         services
             .AddDatabase(configuration)
             .AddMapsterConfigurations()
             .AddFluentValidationConfigurations();
+
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }
@@ -34,6 +40,50 @@ public static class DependencyInjection
         mappingConfig.Scan(Assembly.GetExecutingAssembly());
 
         services.AddSingleton<IMapper>(new Mapper(mappingConfig));
+
+        return services;
+    }
+
+    private static IServiceCollection AddAuthConfigurations(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddIdentity<ApplicationUser, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        services.AddSingleton<IJwtProvider, JwtProvider>();
+
+        services.AddOptions<JwtOptions>()
+            .BindConfiguration(JwtOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        var jwtSettings = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>();
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(o =>
+        {
+            o.SaveToken = true;
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings?.Key!)),
+                ValidIssuer = jwtSettings?.Issuer,
+                ValidAudience = jwtSettings?.Audience
+            };
+        });
+
+        services.Configure<IdentityOptions>(options =>
+        {
+            options.Password.RequiredLength = 8;
+            options.User.RequireUniqueEmail = true;
+
+        });
 
         return services;
     }

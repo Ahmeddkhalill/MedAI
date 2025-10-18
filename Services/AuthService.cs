@@ -1,0 +1,49 @@
+﻿namespace MedAI.Services;
+
+public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider) : IAuthService
+{
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly IJwtProvider _jwtProvider = jwtProvider;
+
+    public async Task<Result<AuthResponse>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user is null)
+            return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
+
+        var isValidPassword = await _userManager.CheckPasswordAsync(user, password);
+
+        if (!isValidPassword)
+            return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
+
+        var (token, expiresIn) = _jwtProvider.GenerateToken(user);
+
+        var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
+
+        return Result.Success(response);
+    }
+
+    public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    { 
+        var emailExists = await _userManager.Users.AnyAsync(x => x.Email == request.Email, cancellationToken);
+        
+        if (emailExists)
+            return Result.Failure<AuthResponse>(UserErrors.DuplicatedEmail);
+
+        var user = request.Adapt<ApplicationUser>();
+
+        var result = await _userManager.CreateAsync(user, request.Password);
+
+        if (result.Succeeded)
+        {
+            var (token, expiresIn) = _jwtProvider.GenerateToken(user);
+            var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
+            return Result.Success(response);
+        }
+
+        var error = result.Errors.First();
+
+        return Result.Failure<AuthResponse>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
+    }
+}
