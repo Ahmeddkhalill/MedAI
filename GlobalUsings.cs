@@ -6,6 +6,7 @@ global using Mapster;
 global using FluentValidation;
 
 global using MedAI.Contracts.Authentication;
+global using MedAI.Abstractions.Consts;
 global using MedAI.Authentication;
 global using MedAI.Persistence;
 global using MedAI.Errors;

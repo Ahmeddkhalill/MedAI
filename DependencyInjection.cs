@@ -12,6 +12,15 @@ public static class DependencyInjection
     {
         services.AddControllers();
 
+        services.AddCors(options =>
+            options.AddPolicy(CorsPolicyNames.AllowAll, builder =>
+                builder
+                    .AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    )
+            );
+
         services.AddAuthConfigurations(configuration);
 
         services.AddOpenApi();

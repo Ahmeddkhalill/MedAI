@@ -19,6 +19,8 @@ public class Program
 
         app.UseHttpsRedirection();
 
+        app.UseCors(CorsPolicyNames.AllowAll);
+
         app.UseAuthorization();
 
         app.MapControllers();
