@@ -1,6 +1,6 @@
 ﻿namespace MedAI.Abstractions.Consts;
 
-public static class CorsPolicyNames
+public static class CorsPolicy
 {
     public const string AllowAll = "AllowAll";
 }

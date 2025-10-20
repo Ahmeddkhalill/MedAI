@@ -17,7 +17,7 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
         if (!isValidPassword)
             return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
 
-        return GenerateAuthResult(user);
+        return await GenerateAuthResult(user);
     }
 
     public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
@@ -37,13 +37,19 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
             return Result.Failure<AuthResponse>(new Error(error.Code, error.Description, StatusCodes.Status400BadRequest));
         }
 
-        return GenerateAuthResult(user);
+        await _userManager.AddToRoleAsync(user, "Patient");
+
+        return await GenerateAuthResult(user);
     }
 
-    private Result<AuthResponse> GenerateAuthResult(ApplicationUser user)
+    private async Task<Result<AuthResponse>> GenerateAuthResult(ApplicationUser user)
     {
-        var (token, expiresIn) = _jwtProvider.GenerateToken(user);
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var (token, expiresIn) = _jwtProvider.GenerateToken(user, roles);
+
         var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
+
         return Result.Success(response);
     }
 }

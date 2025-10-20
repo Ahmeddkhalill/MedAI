@@ -13,7 +13,7 @@ public static class DependencyInjection
         services.AddControllers();
 
         services.AddCors(options =>
-            options.AddPolicy(CorsPolicyNames.AllowAll, builder =>
+            options.AddPolicy(CorsPolicy.AllowAll, builder =>
                 builder
                     .AllowAnyOrigin()
                     .AllowAnyMethod()

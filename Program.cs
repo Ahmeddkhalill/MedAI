@@ -19,7 +19,7 @@ public class Program
 
         app.UseHttpsRedirection();
 
-        app.UseCors(CorsPolicyNames.AllowAll);
+        app.UseCors(CorsPolicy.AllowAll);
 
         app.UseAuthorization();
 

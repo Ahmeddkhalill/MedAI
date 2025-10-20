@@ -1,6 +1,4 @@
-﻿using MedAI.Abstractions.Consts;
-
-namespace MedAI.Contracts.Authentication;
+﻿namespace MedAI.Contracts.Authentication;
 
 public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {
