@@ -1,8 +1,8 @@
-﻿using MapsterMapper;
+﻿using System.Text;
+using MapsterMapper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
-using System.Text;
 
 namespace MedAI;
 
@@ -11,26 +11,23 @@ public static class DependencyInjection
     public static IServiceCollection AddDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen();
 
         services.AddCors(options =>
             options.AddPolicy(CorsPolicy.AllowAll, builder =>
-                builder
-                    .AllowAnyOrigin()
-                    .AllowAnyMethod()
-                    .AllowAnyHeader()
-                    )
-            );
+                builder.AllowAnyOrigin()
+                       .AllowAnyMethod()
+                       .AllowAnyHeader()
+            ));
 
         services.AddAuthConfigurations(configuration);
-
-        services.AddOpenApi();
-
-        services
-            .AddDatabase(configuration)
-            .AddMapsterConfigurations()
-            .AddFluentValidationConfigurations();
+        services.AddDatabase(configuration);
+        services.AddMapsterConfigurations();
+        services.AddFluentValidationConfigurations();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IDoctorService, DoctorService>();
 
         return services;
     }
@@ -39,7 +36,6 @@ public static class DependencyInjection
     {
         services.AddFluentValidationAutoValidation()
             .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-        
         return services;
     }
 
@@ -47,9 +43,7 @@ public static class DependencyInjection
     {
         var mappingConfig = TypeAdapterConfig.GlobalSettings;
         mappingConfig.Scan(Assembly.GetExecutingAssembly());
-
         services.AddSingleton<IMapper>(new Mapper(mappingConfig));
-
         return services;
     }
 
@@ -91,7 +85,6 @@ public static class DependencyInjection
         {
             options.Password.RequiredLength = 8;
             options.User.RequireUniqueEmail = true;
-
         });
 
         return services;
@@ -107,5 +100,4 @@ public static class DependencyInjection
 
         return services;
     }
-
 }
