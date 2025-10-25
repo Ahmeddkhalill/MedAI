@@ -7,6 +7,43 @@ public class DoctorService(ApplicationDbContext context, UserManager<Application
     private readonly ApplicationDbContext _context = context;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
 
+    public async Task<Result<IEnumerable<DoctorResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        var doctors = await _context.Doctors
+            .Include(d => d.ApplicationUser)
+            .ToListAsync(cancellationToken);
+
+        var responses = doctors.Select(d => new DoctorResponse(
+            d.Id,
+            d.UserId,
+            d.ApplicationUser.FirstName,
+            d.ApplicationUser.LastName,
+            d.ApplicationUser.Email!,
+            d.Degree
+        ));
+
+        return Result.Success(responses);
+    }
+    public async Task<Result<DoctorResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var doctor = await _context.Doctors
+            .Include(d => d.ApplicationUser)
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+
+        if (doctor is null)
+            return Result.Failure<DoctorResponse>(DoctorErrors.NotFound);
+
+        var response = new DoctorResponse(
+            doctor.Id,
+            doctor.UserId,
+            doctor.ApplicationUser.FirstName,
+            doctor.ApplicationUser.LastName,
+            doctor.ApplicationUser.Email!,
+            doctor.Degree
+        );
+
+        return Result.Success(response);
+    }
     public async Task<Result<DoctorResponse>> AddDoctorAsync(AddDoctorRequest request, CancellationToken cancellationToken = default)
     {
         var emailExists = _userManager.Users.Any(x => x.Email == request.Email);
@@ -45,8 +82,7 @@ public class DoctorService(ApplicationDbContext context, UserManager<Application
 
         return Result.Success(response);
     }
-
-    public async Task<Result<DoctorResponse>> UpdateDoctorAsync(int id, UpdateDoctorRequest request, CancellationToken cancellationToken)
+    public async Task<Result> UpdateDoctorAsync(int id, UpdateDoctorRequest request, CancellationToken cancellationToken)
     {
         var doctor = await _context.Doctors
             .Include(d => d.ApplicationUser)
@@ -68,56 +104,9 @@ public class DoctorService(ApplicationDbContext context, UserManager<Application
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        var response = new DoctorResponse(
-            doctor.Id,
-            doctor.UserId,
-            doctor.ApplicationUser.FirstName,
-            doctor.ApplicationUser.LastName,
-            doctor.ApplicationUser.Email,
-            doctor.Degree
-        );
-
-        return Result.Success(response);
+        return Result.Success();
     }
 
-    public async Task<Result<IEnumerable<DoctorResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        var doctors = await _context.Doctors
-            .Include(d => d.ApplicationUser)
-            .ToListAsync(cancellationToken);
-
-        var responses = doctors.Select(d => new DoctorResponse(
-            d.Id,
-            d.UserId,
-            d.ApplicationUser.FirstName,
-            d.ApplicationUser.LastName,
-            d.ApplicationUser.Email!,
-            d.Degree
-        ));
-
-        return Result.Success(responses);
-    }
-
-    public async Task<Result<DoctorResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        var doctor = await _context.Doctors
-            .Include(d => d.ApplicationUser)
-            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
-
-        if (doctor is null)
-            return Result.Failure<DoctorResponse>(DoctorErrors.NotFound);
-
-        var response = new DoctorResponse(
-            doctor.Id,
-            doctor.UserId,
-            doctor.ApplicationUser.FirstName,
-            doctor.ApplicationUser.LastName,
-            doctor.ApplicationUser.Email!,
-            doctor.Degree
-        );
-
-        return Result.Success(response);
-    }
 
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {

@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using MapsterMapper;
+using MedAI.OpenApi;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SharpGrip.FluentValidation.AutoValidation.Mvc.Extensions;
@@ -11,8 +12,10 @@ public static class DependencyInjection
     public static IServiceCollection AddDependencies(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
-        services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen();
+
+        services
+            .AddEndpointsApiExplorer()
+            .AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
         services.AddCors(options =>
             options.AddPolicy(CorsPolicy.AllowAll, builder =>

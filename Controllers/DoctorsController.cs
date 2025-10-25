@@ -27,7 +27,7 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     public async Task<IActionResult> AddDoctorAsync([FromBody] AddDoctorRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.AddDoctorAsync(request, cancellationToken);
-        return result.IsSuccess ? CreatedAtAction(nameof (GetDoctorByIdAsync), new { id = result.Value.Id }, result.Value) : result.ToProblem();
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 
     [HttpPut("{id}")]

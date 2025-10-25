@@ -1,30 +1,24 @@
-namespace MedAI;
+using MedAI;
+using Scalar.AspNetCore;
 
-public class Program
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDependencies(builder.Configuration);
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
 {
-    public static void Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
-
-        builder.Services.AddDependencies(builder.Configuration);
-
-        var app = builder.Build();
-
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "v1"));
-        }
-
-        app.UseHttpsRedirection();
-
-        app.UseCors(CorsPolicy.AllowAll);
-
-        app.UseAuthorization();
-
-        app.MapControllers();
-
-        app.Run();
-    }
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
+
+app.UseHttpsRedirection();
+
+app.UseCors(CorsPolicy.AllowAll);
+
+app.UseAuthorization();
+
+app.MapControllers();
+
+app.Run();
