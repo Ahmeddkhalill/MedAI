@@ -9,7 +9,7 @@ public class AuthController(IAuthService authService) : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request, CancellationToken cancellationToken)
     {
-        var result = await _authService.GetTokenAsync(request.Email, request.Password, cancellationToken);
+        var result = await _authService.LoginAsync(request.Email, request.Password, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 

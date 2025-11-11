@@ -10,6 +10,7 @@ public class DoctorService(ApplicationDbContext context, UserManager<Application
     public async Task<Result<IEnumerable<DoctorResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         var doctors = await _context.Doctors
+            .AsNoTracking()
             .Include(d => d.ApplicationUser)
             .ToListAsync(cancellationToken);
 

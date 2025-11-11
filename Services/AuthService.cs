@@ -5,7 +5,7 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IJwtProvider _jwtProvider = jwtProvider;
 
-    public async Task<Result<AuthResponse>> GetTokenAsync(string email, string password, CancellationToken cancellationToken = default)
+    public async Task<Result<AuthResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
 

@@ -19,6 +19,8 @@ app.UseCors(CorsPolicy.AllowAll);
 
 app.UseAuthorization();
 
+app.UseStaticFiles();
+
 app.MapControllers();
 
 app.Run();

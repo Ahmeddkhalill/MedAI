@@ -17,6 +17,9 @@ public static class DependencyInjection
             .AddEndpointsApiExplorer()
             .AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
+        services.AddHttpContextAccessor();
+        services.AddHttpClient();
+
         services.AddCors(options =>
             options.AddPolicy(CorsPolicy.AllowAll, builder =>
                 builder.AllowAnyOrigin()
@@ -31,6 +34,7 @@ public static class DependencyInjection
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IDoctorService, DoctorService>();
+        services.AddScoped<IXrayService, XrayService>();
 
         return services;
     }
