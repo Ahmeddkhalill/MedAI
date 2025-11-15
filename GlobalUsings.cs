@@ -14,4 +14,5 @@ global using MedAI.Errors;
 global using MedAI.Services;
 global using MedAI.Abstractions;
 global using MedAI.Entities;
+global using MedAI.Extensions;
 global using System.Reflection;
