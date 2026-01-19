@@ -1,4 +1,5 @@
-﻿using MedAI.Contracts.Xrays;
+﻿using MedAI.Contracts.Common;
+using MedAI.Contracts.Xrays;
 
 namespace MedAI.Controllers;
 
@@ -19,11 +20,12 @@ public class XraysController(IXrayService xrayService) : ControllerBase
 
     [HttpGet("unrevised")]
     [Authorize(Roles = "Doctor")]
-    public async Task<IActionResult> GetUnrevisedXrays(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetUnrevisedXrays([FromQuery] RequestFilters filters, CancellationToken cancellationToken)
     {
-        var result = await _xrayService.GetUnrevisedXraysAsync(cancellationToken);
+        var result = await _xrayService.GetUnrevisedXraysAsync(filters, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
+
 
     [HttpPost("{xrayId}/confirm")]
     [Authorize(Roles = "Doctor")]

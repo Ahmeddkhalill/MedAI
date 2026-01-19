@@ -1,4 +1,5 @@
-﻿using MedAI.Contracts.Doctors;
+﻿using MedAI.Contracts.Common;
+using MedAI.Contracts.Doctors;
 
 namespace MedAI.Services;
 
@@ -7,23 +8,23 @@ public class DoctorService(ApplicationDbContext context, UserManager<Application
     private readonly ApplicationDbContext _context = context;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
 
-    public async Task<Result<IEnumerable<DoctorResponse>>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<DoctorResponse>>> GetAllAsync(RequestFilters filters,CancellationToken cancellationToken = default)
     {
-        var doctors = await _context.Doctors
+        var query = _context.Doctors
             .AsNoTracking()
             .Include(d => d.ApplicationUser)
-            .ToListAsync(cancellationToken);
+            .Select(d => new DoctorResponse(
+                d.Id,
+                d.UserId,
+                d.ApplicationUser.FirstName,
+                d.ApplicationUser.LastName,
+                d.ApplicationUser.Email!,
+                d.Degree
+            ));
 
-        var responses = doctors.Select(d => new DoctorResponse(
-            d.Id,
-            d.UserId,
-            d.ApplicationUser.FirstName,
-            d.ApplicationUser.LastName,
-            d.ApplicationUser.Email!,
-            d.Degree
-        ));
+        var response = await PaginatedList<DoctorResponse>.CreateAsync(query,filters.PageNumber,filters.PageSize);
 
-        return Result.Success(responses);
+        return Result.Success(response);
     }
     public async Task<Result<DoctorResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
@@ -107,8 +108,6 @@ public class DoctorService(ApplicationDbContext context, UserManager<Application
 
         return Result.Success();
     }
-
-
     public async Task<Result> DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         var doctor = await _context.Doctors

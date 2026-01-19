@@ -1,4 +1,5 @@
-﻿using MedAI.Contracts.Xrays;
+﻿using MedAI.Contracts.Common;
+using MedAI.Contracts.Xrays;
 using MedAI.Extensions;
 using System.Text;
 using System.Text.Json;
@@ -90,23 +91,24 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
         return Result.Success(response);
     }
 
-    public async Task<Result<IEnumerable<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(RequestFilters filters,CancellationToken cancellationToken = default)
     {
-        var xrays = await _context.Xrays
-        .Where(x => !x.IsRevised)
-        .OrderBy(x => x.CreatedAt)
-        .Select(x => new UnrevisedXrayResponse(
-            x.Id,
-            x.ImageUrl,
-            x.AI_Diagnosis,
-            x.AI_Confidence,
-            x.PatientId,
-            x.CreatedAt
-        ))
-        .ToListAsync(cancellationToken);
+        var query = _context.Xrays
+            .AsNoTracking()
+            .Where(x => !x.IsRevised)
+            .OrderBy(x => x.CreatedAt)
+            .Select(x => new UnrevisedXrayResponse(
+                x.Id,
+                x.ImageUrl,
+                x.AI_Diagnosis,
+                x.AI_Confidence,
+                x.PatientId,
+                x.CreatedAt
+            ));
 
-        return Result.Success<IEnumerable<UnrevisedXrayResponse>>(xrays);
+        var response = await PaginatedList<UnrevisedXrayResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
 
+        return Result.Success(response);
     }
 
     public async Task<Result> ConfirmXrayAsync(int xrayId, ConfirmXrayRequest request, CancellationToken cancellationToken = default)

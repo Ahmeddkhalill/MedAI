@@ -1,4 +1,5 @@
-﻿using MedAI.Contracts.Doctors;
+﻿using MedAI.Contracts.Common;
+using MedAI.Contracts.Doctors;
 
 namespace MedAI.Controllers;
 
@@ -10,14 +11,14 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     private readonly IDoctorService _doctorService = doctorService;
 
     [HttpGet("")]
-    public async Task<IActionResult> GetAllDoctors(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetAllDoctors([FromQuery] RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var result = await _doctorService.GetAllAsync(cancellationToken);
-        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+        var result = await _doctorService.GetAllAsync(filters, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value): result.ToProblem();
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetDoctorByIdAsync([FromRoute] int id,  CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetDoctorByIdAsync([FromRoute] int id, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.GetByIdAsync(id, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
