@@ -11,6 +11,7 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     private readonly IDoctorService _doctorService = doctorService;
 
     [HttpGet("")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllDoctors([FromQuery] RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.GetAllAsync(filters, cancellationToken);

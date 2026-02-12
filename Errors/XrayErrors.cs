@@ -13,4 +13,7 @@ public record XrayErrors
 
     public static readonly Error AlreadyRevised =
         new("Xray.AlreadyRevised", "X-ray has already been revised", StatusCodes.Status400BadRequest);
+
+    public static readonly Error NotRevisedYet = 
+        new("Xray.NotRevisedYet", "X-ray has not been revised yet", StatusCodes.Status400BadRequest);
 }

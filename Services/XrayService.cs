@@ -1,8 +1,5 @@
-﻿using MedAI.Contracts.Common;
-using MedAI.Contracts.Xrays;
-using MedAI.Extensions;
-using System.Text;
-using System.Text.Json;
+﻿using MedAI.Contracts.Xrays;
+
 
 namespace MedAI.Services;
 
@@ -135,6 +132,7 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
 
         xray.FinalDiagnosis = request.FinalDiagnosis;
         xray.FinalConfidence = request.FinalConfidence;
+        xray.DoctorNotes = request.DoctorNotes;
         xray.DoctorId = doctor.Id; 
         xray.IsRevised = true;
         xray.ConfirmedAt = DateTime.UtcNow;
@@ -143,4 +141,68 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
 
         return Result.Success();
     }
+
+    public async Task<Result<XrayResultResponse>> GetConfirmedXrayByIdAsync(int xrayId,CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
+
+        if (userId is null)
+            return Result.Failure<XrayResultResponse>(UserErrors.InvalidJwtToken);
+
+        var xray = await _context.Xrays
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x =>
+                x.Id == xrayId &&
+                x.PatientId == userId,
+                cancellationToken);
+
+        if (xray is null)
+            return Result.Failure<XrayResultResponse>(XrayErrors.NotFound);
+
+        if (!xray.IsRevised)
+            return Result.Failure<XrayResultResponse>(XrayErrors.NotRevisedYet);
+
+        var response = new XrayResultResponse(
+            xray.Id,
+            xray.ImageUrl,
+            xray.FinalDiagnosis,
+            xray.FinalConfidence,
+            xray.DoctorNotes,
+            xray.ConfirmedAt!.Value
+        );
+
+        return Result.Success(response);
+    }
+
+    public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
+
+        if (userId is null)
+            return Result.Failure<PaginatedList<PatientXrayHistoryResponse>>(UserErrors.InvalidJwtToken);
+
+        var query = _context.Xrays
+            .AsNoTracking()
+            .Where(x => x.PatientId == userId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new PatientXrayHistoryResponse(
+                x.Id,
+                x.ImageUrl,
+                x.AI_Diagnosis,
+                x.AI_Confidence,
+                x.FinalDiagnosis,
+                x.FinalConfidence,
+                x.DoctorNotes,
+                x.IsRevised,
+                x.CreatedAt,
+                x.ConfirmedAt
+            ));
+
+        var paginatedList = await PaginatedList<PatientXrayHistoryResponse>
+            .CreateAsync(query, filters.PageNumber, filters.PageSize);
+
+        return Result.Success(paginatedList);
+    }
+
+
 }

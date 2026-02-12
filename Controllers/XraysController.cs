@@ -1,5 +1,4 @@
-﻿using MedAI.Contracts.Common;
-using MedAI.Contracts.Xrays;
+﻿using MedAI.Contracts.Xrays;
 
 namespace MedAI.Controllers;
 
@@ -33,5 +32,20 @@ public class XraysController(IXrayService xrayService) : ControllerBase
     {
         var result = await _xrayService.ConfirmXrayAsync(xrayId, request, cancellationToken);
         return result.IsSuccess ? NoContent() : result.ToProblem();
+    }
+
+    [HttpGet("{xrayId}")]
+    [Authorize(Roles = "Doctor,Patient")]
+    public async Task<IActionResult> GetConfirmedXrayById(int xrayId, CancellationToken cancellationToken)
+    {
+        var result = await _xrayService.GetConfirmedXrayByIdAsync(xrayId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+
+    [HttpGet("my-history")]
+    public async Task<IActionResult> GetMyHistory([FromQuery] RequestFilters filters, CancellationToken cancellationToken)
+    {
+        var result = await _xrayService.GetMyHistoryAsync(filters, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

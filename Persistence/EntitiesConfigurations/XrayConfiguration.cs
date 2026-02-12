@@ -10,6 +10,9 @@ public class XrayConfiguration : IEntityTypeConfiguration<Xray>
         builder.Property(x => x.FinalDiagnosis)
             .HasMaxLength(255);
 
+        builder.Property(x => x.DoctorNotes)
+            .HasMaxLength(1000);
+
         builder.Property(x => x.AI_Confidence)
             .HasColumnType("decimal(5,2)");
 

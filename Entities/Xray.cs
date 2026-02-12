@@ -6,6 +6,7 @@ public class Xray
     public string ImageUrl { get; set; } = null!;
     public string? AI_Diagnosis { get; set; }
     public decimal? AI_Confidence { get; set; }
+    public string? DoctorNotes { get; set; }
     public string? FinalDiagnosis { get; set; }
     public decimal? FinalConfidence { get; set; }
     public bool IsRevised { get; set; }

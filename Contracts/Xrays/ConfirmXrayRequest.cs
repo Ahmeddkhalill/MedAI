@@ -2,5 +2,6 @@
 
 public record ConfirmXrayRequest(
     string FinalDiagnosis,
-    decimal FinalConfidence
+    decimal FinalConfidence,
+    string? DoctorNotes
 );
