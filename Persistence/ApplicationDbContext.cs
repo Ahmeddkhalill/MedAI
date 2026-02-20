@@ -6,6 +6,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Doctor> Doctors { get; set; }
     public DbSet<Xray> Xrays { get; set; }
+    public DbSet<DoctorAvailableTime> DoctorAvailableTime { get; set; }
+    public DbSet<Booking> Bookings { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

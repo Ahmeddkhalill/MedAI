@@ -1,14 +1,14 @@
-﻿using MedAI.Contracts.Common;
-using MedAI.Contracts.Doctors;
+﻿using MedAI.Contracts.Doctors;
 
 namespace MedAI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "Admin")]
-public class DoctorsController(IDoctorService doctorService) : ControllerBase
+
+public class DoctorsController(IDoctorService doctorService, IDoctorAvailableTimeService doctorAvailableTimeService) : ControllerBase
 {
     private readonly IDoctorService _doctorService = doctorService;
+    private readonly IDoctorAvailableTimeService _doctorAvailableTimeService = doctorAvailableTimeService;
 
     [HttpGet("")]
     [AllowAnonymous]
@@ -19,6 +19,7 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> GetDoctorByIdAsync([FromRoute] int id, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.GetByIdAsync(id, cancellationToken);
@@ -26,6 +27,7 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     }
 
     [HttpPost("")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AddDoctorAsync([FromBody] AddDoctorRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.AddDoctorAsync(request, cancellationToken);
@@ -33,6 +35,7 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateDoctorAsync([FromRoute] int id, [FromBody] UpdateDoctorRequest request, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.UpdateDoctorAsync(id, request, cancellationToken);
@@ -40,9 +43,18 @@ public class DoctorsController(IDoctorService doctorService) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteDoctorAsync([FromRoute] int id, CancellationToken cancellationToken = default)
     {
         var result = await _doctorService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : result.ToProblem();
+    }
+
+    [HttpGet("{doctorId}/available-times")]
+    [Authorize(Roles = "Patient")]
+    public async Task<IActionResult> GetDoctorAvailableTimesAsync([FromRoute] int doctorId, CancellationToken cancellationToken = default)
+    {
+        var result = await _doctorAvailableTimeService.GetByDoctorAsync(doctorId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

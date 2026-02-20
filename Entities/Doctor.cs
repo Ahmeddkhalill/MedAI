@@ -7,6 +7,7 @@ public class Doctor
 
     public string UserId { get; set; } = default!;
     public ApplicationUser ApplicationUser { get; set; } = default!;
+    public ICollection<DoctorAvailableTime> AvailableTimes { get; set; } = new List<DoctorAvailableTime>();
 }
 public enum Degree
 {

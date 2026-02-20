@@ -3,6 +3,7 @@ using System;
 using MedAI.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MedAI.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260216224702_AddDoctorAvailableTimeTable")]
+    partial class AddDoctorAvailableTimeTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.2");
@@ -91,32 +94,6 @@ namespace MedAI.Persistence.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("MedAI.Entities.Booking", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DoctorAvailableTimeId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientId");
-
-                    b.HasIndex("DoctorAvailableTimeId", "PatientId")
-                        .IsUnique();
-
-                    b.ToTable("Bookings");
-                });
-
             modelBuilder.Entity("MedAI.Entities.Doctor", b =>
                 {
                     b.Property<int>("Id")
@@ -174,6 +151,12 @@ namespace MedAI.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(true);
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("BLOB");
 
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("TEXT");
@@ -366,25 +349,6 @@ namespace MedAI.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("MedAI.Entities.Booking", b =>
-                {
-                    b.HasOne("MedAI.Entities.DoctorAvailableTime", "DoctorAvailableTime")
-                        .WithMany("Bookings")
-                        .HasForeignKey("DoctorAvailableTimeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("MedAI.Entities.ApplicationUser", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DoctorAvailableTime");
-
-                    b.Navigation("Patient");
-                });
-
             modelBuilder.Entity("MedAI.Entities.Doctor", b =>
                 {
                     b.HasOne("MedAI.Entities.ApplicationUser", "ApplicationUser")
@@ -484,11 +448,6 @@ namespace MedAI.Persistence.Migrations
             modelBuilder.Entity("MedAI.Entities.Doctor", b =>
                 {
                     b.Navigation("AvailableTimes");
-                });
-
-            modelBuilder.Entity("MedAI.Entities.DoctorAvailableTime", b =>
-                {
-                    b.Navigation("Bookings");
                 });
 #pragma warning restore 612, 618
         }
