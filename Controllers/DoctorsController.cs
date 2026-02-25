@@ -51,7 +51,7 @@ public class DoctorsController(IDoctorService doctorService, IDoctorAvailableTim
     }
 
     [HttpGet("{doctorId}/available-times")]
-    [Authorize(Roles = "Patient")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetDoctorAvailableTimesAsync([FromRoute] int doctorId, CancellationToken cancellationToken = default)
     {
         var result = await _doctorAvailableTimeService.GetByDoctorAsync(doctorId, cancellationToken);

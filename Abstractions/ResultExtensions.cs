@@ -10,17 +10,15 @@ public static class ResultExtensions
         var problem = Results.Problem(statusCode: result.Error.StatusCode);
         var problemDetails = problem.GetType().GetProperty(nameof(ProblemDetails))!.GetValue(problem) as ProblemDetails;
 
-        problemDetails!.Extensions = new Dictionary<string, object?>
+        problemDetails!.Extensions["errors"] = new
         {
-            {
-                "errors", new[]
-                {
-                    result.Error.Code,
-                    result.Error.Description
-                }
-            }
+            code = result.Error.Code,
+            message = result.Error.Description
         };
 
-        return new ObjectResult(problemDetails);
+        return new ObjectResult(problemDetails)
+        {
+            StatusCode = result.Error.StatusCode
+        };
     }
 }
