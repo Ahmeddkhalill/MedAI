@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
-
-namespace MedAI.Entities;
+﻿namespace MedAI.Entities;
 
 public sealed class ApplicationUser : IdentityUser
 {
@@ -8,4 +6,5 @@ public sealed class ApplicationUser : IdentityUser
     public string LastName { get; set; } = string.Empty;
 
     public Doctor? Doctor { get; set; }
+    public List<RefreshToken> RefreshTokens { get; set; } = [];
 }

@@ -43,6 +43,7 @@ public class XraysController(IXrayService xrayService) : ControllerBase
     }
 
     [HttpGet("my-history")]
+    [Authorize(Roles = "Patient")]
     public async Task<IActionResult> GetMyHistory([FromQuery] RequestFilters filters, CancellationToken cancellationToken)
     {
         var result = await _xrayService.GetMyHistoryAsync(filters, cancellationToken);

@@ -1,10 +1,13 @@
-﻿namespace MedAI.Services;
+﻿using System.Security.Cryptography;
+
+namespace MedAI.Services;
 
 public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IJwtProvider _jwtProvider = jwtProvider;
 
+    private readonly int _refreshTokenExpiryDays = 14;
     public async Task<Result<AuthResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -47,9 +50,24 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
         var roles = await _userManager.GetRolesAsync(user);
 
         var (token, expiresIn) = _jwtProvider.GenerateToken(user, roles);
+        var refreshToken = GenerateRefreshToken();
+        var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
 
-        var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn);
+        user.RefreshTokens.Add(new RefreshToken
+        {
+            Token = refreshToken,
+            ExpiresOn = refreshTokenExpiration
+        });
+
+        await _userManager.UpdateAsync(user);
+
+        var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn, refreshToken, refreshTokenExpiration);
 
         return Result.Success(response);
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     }
 }

@@ -1,6 +1,4 @@
-﻿using MedAI.Contracts.Bookings;
-
-namespace MedAI.Controllers;
+﻿namespace MedAI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
