@@ -2,12 +2,16 @@
 
 namespace MedAI.Services;
 
-public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider jwtProvider) : IAuthService
+public class AuthService(
+    UserManager<ApplicationUser> userManager,
+    IJwtProvider jwtProvider,
+    ApplicationDbContext context) : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly IJwtProvider _jwtProvider = jwtProvider;
-
+    private readonly ApplicationDbContext _context = context;
     private readonly int _refreshTokenExpiryDays = 14;
+
     public async Task<Result<AuthResponse>> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByEmailAsync(email);
@@ -20,12 +24,13 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
         if (!isValidPassword)
             return Result.Failure<AuthResponse>(UserErrors.InvalidCredentials);
 
-        return await GenerateAuthResult(user);
+        return await GenerateAuthResult(user, cancellationToken);
     }
 
     public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
-        var emailExists = await _userManager.Users.AnyAsync(x => x.Email == request.Email, cancellationToken);
+        var emailExists = await _userManager.Users
+            .AnyAsync(x => x.Email == request.Email, cancellationToken);
 
         if (emailExists)
             return Result.Failure<AuthResponse>(UserErrors.DuplicatedEmail);
@@ -42,26 +47,67 @@ public class AuthService(UserManager<ApplicationUser> userManager, IJwtProvider 
 
         await _userManager.AddToRoleAsync(user, "Patient");
 
-        return await GenerateAuthResult(user);
+        return await GenerateAuthResult(user, cancellationToken);
     }
 
-    private async Task<Result<AuthResponse>> GenerateAuthResult(ApplicationUser user)
+    public async Task<Result<AuthResponse>> GetRefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default)
+    {
+        var userId = _jwtProvider.ValidateToken(token);
+
+        if (userId is null)
+            return Result.Failure<AuthResponse>(UserErrors.InvalidJwtToken);
+
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user is null)
+            return Result.Failure<AuthResponse>(UserErrors.InvalidJwtToken);
+
+        var userRefreshToken = await _context.RefreshTokens
+            .SingleOrDefaultAsync(x => x.UserId == user.Id && x.Token == refreshToken && x.RevokedOn == null && x.ExpiresOn > DateTime.UtcNow, cancellationToken);
+
+        if (userRefreshToken is null)
+            return Result.Failure<AuthResponse>(UserErrors.InvalidRefreshToken);
+
+        userRefreshToken.RevokedOn = DateTime.UtcNow;
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (newToken, expiresIn) = _jwtProvider.GenerateToken(user, roles);
+
+        var newRefreshToken = new RefreshToken
+        {
+            Token = GenerateRefreshToken(),
+            ExpiresOn = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays),
+            UserId = user.Id
+        };
+
+        await _context.RefreshTokens.AddAsync(newRefreshToken, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var response = new AuthResponse(
+            user.Id, user.Email, user.FirstName, user.LastName,
+            newToken, expiresIn, newRefreshToken.Token, newRefreshToken.ExpiresOn);
+
+        return Result.Success(response);
+    }
+
+    private async Task<Result<AuthResponse>> GenerateAuthResult(ApplicationUser user, CancellationToken cancellationToken = default)
     {
         var roles = await _userManager.GetRolesAsync(user);
-
         var (token, expiresIn) = _jwtProvider.GenerateToken(user, roles);
-        var refreshToken = GenerateRefreshToken();
-        var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
 
-        user.RefreshTokens.Add(new RefreshToken
+        var newRefreshToken = new RefreshToken
         {
-            Token = refreshToken,
-            ExpiresOn = refreshTokenExpiration
-        });
+            Token = GenerateRefreshToken(),
+            ExpiresOn = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays),
+            UserId = user.Id  
+        };
 
-        await _userManager.UpdateAsync(user);
+        await _context.RefreshTokens.AddAsync(newRefreshToken, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
-        var response = new AuthResponse(user.Id, user.Email, user.FirstName, user.LastName, token, expiresIn, refreshToken, refreshTokenExpiration);
+        var response = new AuthResponse(
+            user.Id, user.Email, user.FirstName, user.LastName,
+            token, expiresIn, newRefreshToken.Token, newRefreshToken.ExpiresOn);
 
         return Result.Success(response);
     }

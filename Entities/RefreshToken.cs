@@ -1,6 +1,5 @@
 ﻿namespace MedAI.Entities;
 
-[Owned]
 public class RefreshToken
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -11,4 +10,7 @@ public class RefreshToken
 
     public bool IsExpired => DateTime.UtcNow >= ExpiresOn;
     public bool IsActive => RevokedOn is null && !IsExpired;
+
+    public string UserId { get; set; } = default!;
+    public ApplicationUser User { get; set; } = default!;
 }
