@@ -122,4 +122,43 @@ public class BookingService(
 
         return Result.Success();
     }
+
+    public async Task<Result<PaginatedList<DoctorBookingResponse>>> GetDoctorAppointmentsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
+
+        if (userId is null)
+            return Result.Failure<PaginatedList<DoctorBookingResponse>>(UserErrors.InvalidJwtToken);
+
+        var doctor = await _context.Doctors
+            .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
+
+        if (doctor is null)
+            return Result.Failure<PaginatedList<DoctorBookingResponse>>(DoctorErrors.NotFound);
+
+        var query = _context.Bookings
+            .AsNoTracking()
+            .Include(b => b.Patient)
+            .Include(b => b.DoctorAvailableTime)
+            .Where(b => b.DoctorAvailableTime.DoctorId == doctor.Id)
+            .OrderBy(b => b.DoctorAvailableTime.Date)
+            .ThenBy(b => b.DoctorAvailableTime.StartTime)
+            .Select(b => new DoctorBookingResponse(
+                b.Id,
+                b.CreatedAt,
+                b.PatientId,
+                b.Patient.FirstName,
+                b.Patient.LastName,
+                b.Patient.Email!,
+                b.DoctorAvailableTime.Id,
+                b.DoctorAvailableTime.Date,
+                b.DoctorAvailableTime.StartTime,
+                b.DoctorAvailableTime.EndTime,
+                b.DoctorAvailableTime.ConsultationFee
+            )).AsQueryable();
+
+        var paginated = await PaginatedList<DoctorBookingResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
+
+        return Result.Success(paginated);
+    }
 }

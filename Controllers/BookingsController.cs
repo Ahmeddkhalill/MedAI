@@ -29,4 +29,12 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
         var result = await _bookingService.DeleteAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
+
+    [HttpGet("my-appointments")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetMyAppointments([FromQuery] RequestFilters filters,CancellationToken cancellationToken)
+    {
+        var result = await _bookingService.GetDoctorAppointmentsAsync(filters, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
 }
