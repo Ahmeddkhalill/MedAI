@@ -1,0 +1,24 @@
+﻿namespace MedAI.Contracts.Bookings;
+
+public record PatientBookingResponse(
+    int Id,
+    DateTime CreatedAt,
+    DoctorInfo Doctor,
+    SlotInfo Slot,
+    bool IsCancelable
+);
+
+public record DoctorInfo(
+    int Id,
+    string FirstName,
+    string LastName,
+    string Degree
+);
+
+public record SlotInfo(
+    int Id,
+    DateOnly Date,
+    TimeOnly StartTime,
+    TimeOnly EndTime,
+    decimal ConsultationFee
+);

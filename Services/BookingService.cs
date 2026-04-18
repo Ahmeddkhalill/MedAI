@@ -58,4 +58,68 @@ public class BookingService(
         return Result.Success(response);
     }
 
+    public async Task<Result<PaginatedList<PatientBookingResponse>>> GetMyBookingsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
+
+        if (userId is null)
+            return Result.Failure<PaginatedList<PatientBookingResponse>>(UserErrors.InvalidJwtToken);
+
+        var query = _context.Bookings
+            .AsNoTracking()
+            .Where(b => b.PatientId == userId)
+            .OrderBy(b => b.DoctorAvailableTime.Date)
+            .ThenBy(b => b.DoctorAvailableTime.StartTime)
+            .Select(b => new PatientBookingResponse(
+                b.Id,
+                b.CreatedAt,
+                new DoctorInfo(
+                    b.DoctorAvailableTime.Doctor.Id,
+                    b.DoctorAvailableTime.Doctor.ApplicationUser.FirstName,
+                    b.DoctorAvailableTime.Doctor.ApplicationUser.LastName,
+                    b.DoctorAvailableTime.Doctor.Degree.ToString()
+                ),
+                new SlotInfo(
+                    b.DoctorAvailableTime.Id,
+                    b.DoctorAvailableTime.Date,
+                    b.DoctorAvailableTime.StartTime,
+                    b.DoctorAvailableTime.EndTime,
+                    b.DoctorAvailableTime.ConsultationFee
+                ),
+                b.DoctorAvailableTime.Date >= DateOnly.FromDateTime(DateTime.UtcNow)
+            ));
+
+        var response = await PaginatedList<PatientBookingResponse>.CreateAsync(
+            query,
+            filters.PageNumber,
+            filters.PageSize);
+
+        return Result.Success(response);
+    }
+
+    public async Task<Result> DeleteAsync(int bookingId, CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
+
+        if (userId is null)
+            return Result.Failure(UserErrors.InvalidJwtToken);
+
+        var booking = await _context.Bookings
+            .Include(b => b.DoctorAvailableTime)
+            .FirstOrDefaultAsync(b => b.Id == bookingId, cancellationToken);
+
+        if (booking is null)
+            return Result.Failure(BookingErrors.NotFound);
+
+        if (booking.PatientId != userId)
+            return Result.Failure(BookingErrors.Unauthorized);
+
+        booking.DoctorAvailableTime.Capacity++;
+
+        _context.Bookings.Remove(booking);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
 }
