@@ -12,18 +12,32 @@ public class DoctorService(ApplicationDbContext context,UserManager<ApplicationU
         var query = _context.Doctors
             .AsNoTracking()
             .Include(d => d.ApplicationUser)
-            .Select(d => new DoctorResponse(
-                d.Id,
-                d.UserId,
-                d.ApplicationUser.FirstName,
-                d.ApplicationUser.LastName,
-                d.ApplicationUser.Email!,
-                d.Speciality,
-                d.ImageUrl,
-                d.Degree
-            ));
+            .AsQueryable();
 
-        var response = await PaginatedList<DoctorResponse>.CreateAsync(query,filters.PageNumber,filters.PageSize);
+
+        if (!string.IsNullOrWhiteSpace(filters.SearchValue))
+        {
+            var search = $"%{filters.SearchValue}%";
+
+            query = query.Where(d =>
+                EF.Functions.Like(d.ApplicationUser.FirstName, search) ||
+                EF.Functions.Like(d.ApplicationUser.LastName, search) ||
+                EF.Functions.Like(d.Speciality, search)
+            );
+        }
+
+        var projected = query.Select(d => new DoctorResponse(
+            d.Id,
+            d.UserId,
+            d.ApplicationUser.FirstName,
+            d.ApplicationUser.LastName,
+            d.ApplicationUser.Email!,
+            d.Speciality,
+            d.ImageUrl,
+            d.Degree
+        ));
+
+        var response = await PaginatedList<DoctorResponse>.CreateAsync(projected,filters.PageNumber,filters.PageSize);
 
         return Result.Success(response);
     }
