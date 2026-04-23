@@ -4,20 +4,20 @@ public class UpdateDoctorRequestValidator : AbstractValidator<UpdateDoctorReques
 {
     public UpdateDoctorRequestValidator()
     {
-        RuleFor(x => x.FirstName)
-            .NotEmpty()
-            .Length(3, 100);
-
-        RuleFor(x => x.LastName)
-            .NotEmpty()
-            .Length(3, 100);
-
         RuleFor(x => x.Email)
             .NotEmpty()
             .EmailAddress();
 
         RuleFor(x => x.Degree)
-            .IsInEnum()
-            .WithMessage("Invalid degree value.");
+            .NotEmpty()
+            .MaximumLength(100);
+
+        RuleFor(x => x.Speciality)
+            .NotEmpty()
+            .MaximumLength(100);
+
+        RuleFor(x => x.Image)
+            .Must(file => file == null || file.Length > 0)
+            .WithMessage("Invalid image file.");
     }
 }

@@ -1,4 +1,5 @@
 ﻿using MedAI.Contracts.Bookings;
+using MedAI.Contracts.Doctors;
 
 namespace MedAI.Services;
 
@@ -58,14 +59,14 @@ public class BookingService(
         return Result.Success(response);
     }
 
-    public async Task<Result<PaginatedList<PatientBookingResponse>>> GetMyBookingsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    public async Task<Result<List<PatientBookingResponse>>> GetMyBookingsAsync(CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<PaginatedList<PatientBookingResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<List<PatientBookingResponse>>(UserErrors.InvalidJwtToken);
 
-        var query = _context.Bookings
+        var bookings = await _context.Bookings
             .AsNoTracking()
             .Where(b => b.PatientId == userId)
             .OrderBy(b => b.DoctorAvailableTime.Date)
@@ -87,14 +88,10 @@ public class BookingService(
                     b.DoctorAvailableTime.ConsultationFee
                 ),
                 b.DoctorAvailableTime.Date >= DateOnly.FromDateTime(DateTime.UtcNow)
-            ));
+            ))
+            .ToListAsync(cancellationToken);
 
-        var response = await PaginatedList<PatientBookingResponse>.CreateAsync(
-            query,
-            filters.PageNumber,
-            filters.PageSize);
-
-        return Result.Success(response);
+        return Result.Success(bookings);
     }
 
     public async Task<Result> DeleteAsync(int bookingId, CancellationToken cancellationToken = default)
@@ -123,20 +120,20 @@ public class BookingService(
         return Result.Success();
     }
 
-    public async Task<Result<PaginatedList<DoctorBookingResponse>>> GetDoctorAppointmentsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<PaginatedList<DoctorBookingResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<IEnumerable<DoctorAppointmentsByDateResponse>>(UserErrors.InvalidJwtToken);
 
         var doctor = await _context.Doctors
             .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
 
         if (doctor is null)
-            return Result.Failure<PaginatedList<DoctorBookingResponse>>(DoctorErrors.NotFound);
+            return Result.Failure<IEnumerable<DoctorAppointmentsByDateResponse>>(DoctorErrors.NotFound);
 
-        var query = _context.Bookings
+        var bookings = await _context.Bookings
             .AsNoTracking()
             .Include(b => b.Patient)
             .Include(b => b.DoctorAvailableTime)
@@ -155,10 +152,16 @@ public class BookingService(
                 b.DoctorAvailableTime.StartTime,
                 b.DoctorAvailableTime.EndTime,
                 b.DoctorAvailableTime.ConsultationFee
-            )).AsQueryable();
+            ))
+            .ToListAsync(cancellationToken);
 
-        var paginated = await PaginatedList<DoctorBookingResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
+        var grouped = bookings
+            .GroupBy(b => b.Date)
+            .Select(g => new DoctorAppointmentsByDateResponse(
+                g.Key,
+                g.ToList()
+            ));
 
-        return Result.Success(paginated);
+        return Result.Success(grouped);
     }
 }

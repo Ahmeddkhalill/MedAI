@@ -25,12 +25,12 @@ app.UseStaticFiles();
 
 app.MapControllers();
 
-app.MapGet("/download", () =>
-{
-    var filePath = Path.Combine(app.Environment.ContentRootPath, "MedAI.db");
-    var contentType = "application/octet-stream";
-    var fileName = "MedAI.db";
-    return Results.File(filePath, contentType, fileName);
-});
+//app.MapGet("/download", () =>
+//{
+//    var filePath = Path.Combine(app.Environment.ContentRootPath, "MedAI.db");
+//    var contentType = "application/octet-stream";
+//    var fileName = "MedAI.db";
+//    return Results.File(filePath, contentType, fileName);
+//});
 
 app.Run();
