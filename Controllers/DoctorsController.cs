@@ -62,9 +62,9 @@ public class DoctorsController(IDoctorService doctorService,IDoctorAvailableTime
 
     [HttpGet("my-appointments")]
     [Authorize(Roles = "Doctor")]
-    public async Task<IActionResult> GetMyAppointments(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetMyAppointments([FromQuery] RequestFilters filters,CancellationToken cancellationToken)
     {
-        var result = await _bookingService.GetDoctorAppointmentsAsync(cancellationToken);
+        var result = await _bookingService.GetDoctorAppointmentsAsync(filters, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

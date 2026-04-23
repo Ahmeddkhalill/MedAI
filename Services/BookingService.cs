@@ -120,18 +120,18 @@ public class BookingService(
         return Result.Success();
     }
 
-    public async Task<Result<IEnumerable<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<IEnumerable<DoctorAppointmentsByDateResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(UserErrors.InvalidJwtToken);
 
         var doctor = await _context.Doctors
             .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
 
         if (doctor is null)
-            return Result.Failure<IEnumerable<DoctorAppointmentsByDateResponse>>(DoctorErrors.NotFound);
+            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(DoctorErrors.NotFound);
 
         var bookings = await _context.Bookings
             .AsNoTracking()
@@ -160,8 +160,24 @@ public class BookingService(
             .Select(g => new DoctorAppointmentsByDateResponse(
                 g.Key,
                 g.ToList()
-            ));
+            ))
+            .OrderBy(x => x.Date)
+            .ToList();
 
-        return Result.Success(grouped);
+        var totalCount = grouped.Count;
+
+        var items = grouped
+            .Skip((filters.PageNumber - 1) * filters.PageSize)
+            .Take(filters.PageSize)
+            .ToList();
+
+        var paginated = new PaginatedList<DoctorAppointmentsByDateResponse>(
+            items,
+            totalCount,
+            filters.PageNumber,
+            filters.PageSize
+        );
+
+        return Result.Success(paginated);
     }
 }
