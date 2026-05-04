@@ -89,10 +89,12 @@ public class ScheduleService(ApplicationDbContext context,IHttpContextAccessor h
         if (doctor is null)
             return Result.Failure<IEnumerable<ScheduleByDateResponse>>(DoctorErrors.NotFound);
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
         var slots = await _context.DoctorAvailableTime
             .AsNoTracking()
             .Include(x => x.Bookings)
-            .Where(x => x.DoctorId == doctor.Id)
+            .Where(x => x.DoctorId == doctor.Id && x.Date >= today)
             .OrderBy(x => x.Date)
             .ThenBy(x => x.StartTime)
             .ToListAsync(cancellationToken);

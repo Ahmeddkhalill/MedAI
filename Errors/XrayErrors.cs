@@ -16,4 +16,10 @@ public record XrayErrors
 
     public static readonly Error NotRevisedYet = 
         new("Xray.NotRevisedYet", "X-ray has not been revised yet", StatusCodes.Status400BadRequest);
+
+    public static readonly Error InvalidAIResponse =
+        new("Xray.InvalidAiResponse", "Received an invalid response from the AI service. Please try again later.", StatusCodes.Status502BadGateway);
+
+    public static readonly Error AIServiceUnavailable =
+        new("Xray.AiServiceUnavailable", "AI service is currently unavailable. Please try again later.", StatusCodes.Status503ServiceUnavailable);
 }

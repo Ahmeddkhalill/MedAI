@@ -1,10 +1,12 @@
 ﻿using MedAI.Contracts.Xrays;
 
-
 namespace MedAI.Services;
 
-public class XrayService(ApplicationDbContext context,IHttpClientFactory httpClientFactory,
-    IWebHostEnvironment env,IHttpContextAccessor httpContextAccessor) : IXrayService
+public class XrayService(
+    ApplicationDbContext context,
+    IHttpClientFactory httpClientFactory,
+    IWebHostEnvironment env,
+    IHttpContextAccessor httpContextAccessor) : IXrayService
 {
     private readonly ApplicationDbContext _context = context;
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
@@ -25,6 +27,7 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
             return Result.Failure<UploadResponse>(XrayErrors.PendingReview);
 
         var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads");
+
         if (!Directory.Exists(uploadsFolder))
             Directory.CreateDirectory(uploadsFolder);
 
@@ -36,30 +39,42 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
             await request.Image.CopyToAsync(stream, cancellationToken);
         }
 
-        var imageBytes = await File.ReadAllBytesAsync(filePath, cancellationToken);
-        var base64Image = Convert.ToBase64String(imageBytes);
+        using var ms = new MemoryStream();
+        await request.Image.CopyToAsync(ms, cancellationToken);
+        var base64Image = Convert.ToBase64String(ms.ToArray());
 
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient("AI");
+
         var payload = new { image = base64Image };
         var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-        var ModelResponse = await client.PostAsync("http://127.0.0.1:5000/predict", content, cancellationToken);
-        var responseBody = await ModelResponse.Content.ReadAsStringAsync(cancellationToken);
+        var modelResponse = await client.PostAsync("predict", content, cancellationToken);
+
+        if (!modelResponse.IsSuccessStatusCode)
+            return Result.Failure<UploadResponse>(XrayErrors.AIServiceUnavailable);
+
+        var responseBody = await modelResponse.Content.ReadAsStringAsync(cancellationToken);
 
         string? aiDiagnosis = null;
         decimal? aiConfidence = null;
 
-        if (ModelResponse.IsSuccessStatusCode)
+        try
         {
             using var doc = JsonDocument.Parse(responseBody);
-            aiDiagnosis = doc.RootElement.GetProperty("class").GetString();
-            aiConfidence = (decimal?)doc.RootElement.GetProperty("confidence").GetSingle();
+
+            aiDiagnosis = doc.RootElement.TryGetProperty("class", out var c) ? c.GetString() : null;
+
+            aiConfidence = doc.RootElement.TryGetProperty("confidence", out var conf) ? (decimal?)conf.GetDouble() : null;
+        }
+        catch
+        {
+            return Result.Failure<UploadResponse>(XrayErrors.InvalidAIResponse);
         }
 
         var xray = new Xray
         {
-            ImageUrl = $"uploads/{fileName}",
-            PatientId = userId!,
+            ImageUrl = $"/uploads/{fileName}",
+            PatientId = userId,
             AI_Diagnosis = aiDiagnosis,
             AI_Confidence = aiConfidence,
             FinalDiagnosis = null,
@@ -72,23 +87,23 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
         await _context.SaveChangesAsync(cancellationToken);
 
         var response = new UploadResponse(
-            Id: xray.Id,
-            ImageUrl: xray.ImageUrl,
-            AI_Diagnosis: xray.AI_Diagnosis,
-            AI_Confidence: xray.AI_Confidence,
-            FinalDiagnosis: xray.FinalDiagnosis,
-            FinalConfidence: xray.FinalConfidence,
-            IsRevised: xray.IsRevised,
-            CreatedAt: xray.CreatedAt,
-            ConfirmedAt: xray.ConfirmedAt,
-            PatientId: xray.PatientId,
-            DoctorId: xray.DoctorId
+            xray.Id,
+            xray.ImageUrl,
+            xray.AI_Diagnosis,
+            xray.AI_Confidence,
+            xray.FinalDiagnosis,
+            xray.FinalConfidence,
+            xray.IsRevised,
+            xray.CreatedAt,
+            xray.ConfirmedAt,
+            xray.PatientId,
+            xray.DoctorId
         );
 
         return Result.Success(response);
     }
 
-    public async Task<Result<PaginatedList<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var query = _context.Xrays
             .AsNoTracking()
@@ -133,7 +148,7 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
         xray.FinalDiagnosis = request.FinalDiagnosis;
         xray.FinalConfidence = request.FinalConfidence;
         xray.DoctorNotes = request.DoctorNotes;
-        xray.DoctorId = doctor.Id; 
+        xray.DoctorId = doctor.Id;
         xray.IsRevised = true;
         xray.ConfirmedAt = DateTime.UtcNow;
 
@@ -142,7 +157,7 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
         return Result.Success();
     }
 
-    public async Task<Result<XrayResultResponse>> GetConfirmedXrayByIdAsync(int xrayId,CancellationToken cancellationToken = default)
+    public async Task<Result<XrayResultResponse>> GetConfirmedXrayByIdAsync(int xrayId, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
@@ -174,7 +189,9 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
         return Result.Success(response);
     }
 
-    public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(
+    RequestFilters filters,
+    CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
@@ -188,8 +205,8 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
             .Select(x => new PatientXrayHistoryResponse(
                 x.Id,
                 x.ImageUrl,
-                x.AI_Diagnosis,
-                x.AI_Confidence,
+                x.IsRevised ? x.AI_Diagnosis : null,
+                x.IsRevised ? x.AI_Confidence : null,
                 x.FinalDiagnosis,
                 x.FinalConfidence,
                 x.DoctorNotes,
@@ -203,6 +220,4 @@ public class XrayService(ApplicationDbContext context,IHttpClientFactory httpCli
 
         return Result.Success(paginatedList);
     }
-
-
 }
