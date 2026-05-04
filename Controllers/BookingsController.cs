@@ -6,11 +6,11 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
 {
     private readonly IBookingService _bookingService = bookingService;
 
-    [HttpPost("{doctorAvailableTimeId}")]
+    [HttpPost("{scheduleId}")]
     [Authorize(Roles = "Patient")]
-    public async Task<IActionResult> Create(int doctorAvailableTimeId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(int scheduleId, CancellationToken cancellationToken)
     {
-        var result = await _bookingService.CreateAsync(doctorAvailableTimeId, cancellationToken);
+        var result = await _bookingService.CreateAsync(scheduleId, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Error);
     }
 

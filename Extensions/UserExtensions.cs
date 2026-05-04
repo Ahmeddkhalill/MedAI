@@ -1,6 +1,4 @@
-﻿using System.Security.Claims;
-
-namespace MedAI.Extensions;
+﻿namespace MedAI.Extensions;
 
 public static class UserExtensions
 {

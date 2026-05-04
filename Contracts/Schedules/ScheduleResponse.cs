@@ -1,6 +1,6 @@
-﻿namespace MedAI.Contracts.DoctorAvailableTime;
+﻿namespace MedAI.Contracts.Schedules;
 
-public record DoctorAvailableTimeResponse(
+public record ScheduleResponse(
     int Id,
     DateOnly Date,
     TimeOnly StartTime,

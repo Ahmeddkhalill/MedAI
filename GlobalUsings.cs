@@ -4,6 +4,7 @@ global using Microsoft.EntityFrameworkCore;
 global using Microsoft.AspNetCore.Identity;
 global using Microsoft.AspNetCore.Mvc;
 
+global using System.Security.Claims;
 global using System.Reflection;
 global using System.Text.Json;
 global using System.Text;

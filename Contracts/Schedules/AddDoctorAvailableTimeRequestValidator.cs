@@ -1,6 +1,6 @@
-﻿namespace MedAI.Contracts.DoctorAvailableTime;
+﻿namespace MedAI.Contracts.Schedules;
 
-public class AddDoctorAvailableTimeRequestValidator : AbstractValidator<AddDoctorAvailableTimeRequest>
+public class AddDoctorAvailableTimeRequestValidator : AbstractValidator<AddScheduleRequest>
 {
     public AddDoctorAvailableTimeRequestValidator()
     {

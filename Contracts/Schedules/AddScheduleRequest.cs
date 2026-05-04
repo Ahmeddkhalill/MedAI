@@ -1,6 +1,6 @@
-﻿namespace MedAI.Contracts.DoctorAvailableTime;
+﻿namespace MedAI.Contracts.Schedules;
 
-public record AddDoctorAvailableTimeRequest(
+public record AddScheduleRequest(
     DateOnly Date,
     TimeOnly StartTime,
     TimeOnly EndTime,

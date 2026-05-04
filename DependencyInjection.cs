@@ -1,5 +1,4 @@
-﻿using System.Text;
-using MapsterMapper;
+﻿using MapsterMapper;
 using MedAI.OpenApi;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -36,7 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IDoctorService, DoctorService>();
         services.AddScoped<IXrayService, XrayService>();
         services.AddScoped<IUserService, UserService>();
-        services.AddScoped<IDoctorAvailableTimeService, DoctorAvailableTimeService>();
+        services.AddScoped<IScheduleService, ScheduleService>();
         services.AddScoped<IBookingService, BookingService>();
 
         return services;

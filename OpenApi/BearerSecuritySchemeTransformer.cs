@@ -17,7 +17,7 @@ public sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvide
                 ["Bearer"] = new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.Http,
-                    Scheme = "bearer", // "bearer" refers to the header name here
+                    Scheme = "bearer",
                     In = ParameterLocation.Header,
                     BearerFormat = "JWT"
                 }
@@ -26,7 +26,6 @@ public sealed class BearerSecuritySchemeTransformer(IAuthenticationSchemeProvide
             document.Components ??= new OpenApiComponents();
             document.Components.SecuritySchemes = requirements;
 
-            // Apply it as a requirement for all operations
             foreach (var operation in document.Paths.Values.SelectMany(path => path.Operations!))
             {
                 operation.Value.Security ??= [];

@@ -4,10 +4,10 @@ namespace MedAI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class DoctorsController(IDoctorService doctorService,IDoctorAvailableTimeService doctorAvailableTimeService, IBookingService bookingService) : ControllerBase
+public class DoctorsController(IDoctorService doctorService,IScheduleService doctorAvailableTimeService, IBookingService bookingService) : ControllerBase
 {
     private readonly IDoctorService _doctorService = doctorService;
-    private readonly IDoctorAvailableTimeService _doctorAvailableTimeService = doctorAvailableTimeService;
+    private readonly IScheduleService _doctorAvailableTimeService = doctorAvailableTimeService;
     private readonly IBookingService _bookingService = bookingService;
 
     [HttpGet]
@@ -52,7 +52,7 @@ public class DoctorsController(IDoctorService doctorService,IDoctorAvailableTime
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
 
-    [HttpGet("{doctorId}/available-times")]
+    [HttpGet("{doctorId}/schedule")]
     [AllowAnonymous]
     public async Task<IActionResult> GetDoctorAvailableTimes(int doctorId,CancellationToken cancellationToken = default)
     {

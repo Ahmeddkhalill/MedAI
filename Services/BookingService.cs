@@ -10,7 +10,7 @@ public class BookingService(
     private readonly ApplicationDbContext _context = context;
     private readonly IHttpContextAccessor _httpContextAccessor = httpContextAccessor;
 
-    public async Task<Result<BookingResponse>> CreateAsync(int doctorAvailableTimeId, CancellationToken cancellationToken = default)
+    public async Task<Result<BookingResponse>> CreateAsync(int scheduleId, CancellationToken cancellationToken = default)
     {
         var patientId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
@@ -18,13 +18,13 @@ public class BookingService(
             return Result.Failure<BookingResponse>(UserErrors.InvalidJwtToken);
 
         var slot = await _context.DoctorAvailableTime
-            .FirstOrDefaultAsync(x => x.Id == doctorAvailableTimeId && x.IsActive, cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == scheduleId && x.IsActive, cancellationToken);
 
         if (slot is null)
             return Result.Failure<BookingResponse>(AvailableTimeErrors.NotFound);
 
         var alreadyBooked = await _context.Bookings
-            .AnyAsync(x => x.DoctorAvailableTimeId == doctorAvailableTimeId
+            .AnyAsync(x => x.DoctorAvailableTimeId == scheduleId
                         && x.PatientId == patientId, cancellationToken);
 
         if (alreadyBooked)
@@ -35,7 +35,7 @@ public class BookingService(
 
         var booking = new Booking
         {
-            DoctorAvailableTimeId = doctorAvailableTimeId,
+            DoctorAvailableTimeId = scheduleId,
             PatientId = patientId,
             CreatedAt = DateTime.UtcNow
         };
