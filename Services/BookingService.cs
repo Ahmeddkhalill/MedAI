@@ -119,7 +119,6 @@ public class BookingService(
 
         return Result.Success();
     }
-
     public async Task<Result<PaginatedList<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
@@ -133,11 +132,31 @@ public class BookingService(
         if (doctor is null)
             return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(DoctorErrors.NotFound);
 
-        var bookings = await _context.Bookings
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var query = _context.Bookings
             .AsNoTracking()
             .Include(b => b.Patient)
             .Include(b => b.DoctorAvailableTime)
-            .Where(b => b.DoctorAvailableTime.DoctorId == doctor.Id)
+            .Where(b => b.DoctorAvailableTime.DoctorId == doctor.Id);
+
+        if (!string.IsNullOrEmpty(filters.Type))
+        {
+            var type = filters.Type.ToLower();
+
+            if (type == "past")
+            {
+                query = query.Where(b =>
+                    b.DoctorAvailableTime.Date < today);
+            }
+            else if (type == "upcoming")
+            {
+                query = query.Where(b =>
+                    b.DoctorAvailableTime.Date >= today);
+            }
+        }
+
+        var bookings = await query
             .OrderBy(b => b.DoctorAvailableTime.Date)
             .ThenBy(b => b.DoctorAvailableTime.StartTime)
             .Select(b => new DoctorBookingResponse(

@@ -31,9 +31,9 @@ public class SchedulesController(IScheduleService scheduleService) : ControllerB
     }
 
     [HttpPut("{id}/capacity")]
-    public async Task<IActionResult> UpdateCapacity(int id, [FromBody] int newCapacity, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateCapacity(int id, [FromBody] UpdateCapacityRequest request, CancellationToken cancellationToken)
     {
-        var result = await _scheduleService.UpdateCapacityAsync(id, newCapacity, cancellationToken);
-        return result.IsSuccess ? NoContent() : result.ToProblem();
+        var result = await _scheduleService.UpdateCapacityAsync(id, request, cancellationToken);
+        return result.IsSuccess ? Ok() : result.ToProblem();
     }
 }

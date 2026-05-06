@@ -144,16 +144,13 @@ public class ScheduleService(ApplicationDbContext context,IHttpContextAccessor h
         return Result.Success();
     }
 
-    public async Task<Result> UpdateCapacityAsync(int id, int newCapacity, CancellationToken cancellationToken = default)
+    public async Task<Result> UpdateCapacityAsync(int id, UpdateCapacityRequest request, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
             return Result.Failure(UserErrors.InvalidJwtToken);
 
-        if (newCapacity <= 0)
-            return Result.Failure(SlotErrors.InvalidCapacity);
-        
         var slot = await _context.DoctorAvailableTime
             .Include(x => x.Bookings)
             .Include(x => x.Doctor)
@@ -167,11 +164,10 @@ public class ScheduleService(ApplicationDbContext context,IHttpContextAccessor h
 
         var bookedCount = slot.Bookings.Count;
 
-        if (newCapacity < bookedCount)
+        if (request.NewCapacity < bookedCount)
             return Result.Failure(SlotErrors.BadCapacity);
-        
-        slot.Capacity = newCapacity;
 
+        slot.Capacity = request.NewCapacity;
         await _context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
