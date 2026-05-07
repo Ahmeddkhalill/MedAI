@@ -16,7 +16,5 @@ public class AddDoctorRequestValidator : AbstractValidator<AddDoctorRequest>
         RuleFor(x => x.Speciality)
             .NotEmpty()
             .MaximumLength(100);
-
-        RuleFor(x => x.Image).Must(file => file == null || file.Length > 0);
     }
 }

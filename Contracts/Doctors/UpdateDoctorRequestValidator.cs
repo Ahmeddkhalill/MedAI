@@ -15,9 +15,5 @@ public class UpdateDoctorRequestValidator : AbstractValidator<UpdateDoctorReques
         RuleFor(x => x.Speciality)
             .NotEmpty()
             .MaximumLength(100);
-
-        RuleFor(x => x.Image)
-            .Must(file => file == null || file.Length > 0)
-            .WithMessage("Invalid image file.");
     }
 }

@@ -4,15 +4,15 @@ public record PatientBookingResponse(
     int Id,
     DateTime CreatedAt,
     DoctorInfo Doctor,
-    SlotInfo Slot,
-    bool IsCancelable
+    SlotInfo Slot
 );
 
 public record DoctorInfo(
     int Id,
     string FirstName,
     string LastName,
-    string Degree
+    string Degree,
+    string Speciality
 );
 
 public record SlotInfo(

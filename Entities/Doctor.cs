@@ -6,6 +6,8 @@ public class Doctor
     public string Degree { get; set; } = default!;
     public string Speciality { get; set; } = default!;
     public string? ImageUrl { get; set; }
+    public string? Description { get; set; } = default!;
+    public bool IsAccountCompleted { get; set; } = false;
 
     public string UserId { get; set; } = default!;
     public ApplicationUser ApplicationUser { get; set; } = default!;

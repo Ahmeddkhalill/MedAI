@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace MedAI.Contracts.Doctors;
+﻿namespace MedAI.Contracts.Doctors;
 
 public record DoctorResponse(
     int Id,
@@ -10,5 +8,7 @@ public record DoctorResponse(
     string Email,
     string Speciality,
     string? ImageUrl,
-    string Degree
+    string Degree,
+    string? Description,
+    bool IsAccountCompleted
 );

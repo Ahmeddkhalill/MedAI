@@ -16,9 +16,9 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
 
     [HttpGet("my-bookings")]
     [Authorize(Roles = "Patient")]
-    public async Task<IActionResult> GetMyBookings(CancellationToken cancellationToken = default)
+    public async Task<IActionResult> GetMyBookings([FromQuery] RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var result = await _bookingService.GetMyBookingsAsync(cancellationToken);
+        var result = await _bookingService.GetMyBookingsAsync(filters,cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 

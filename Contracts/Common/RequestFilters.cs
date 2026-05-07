@@ -7,3 +7,7 @@ public record RequestFilters
     public string? SearchValue { get; set; }
     public string? Type { get; set; } 
 }
+public record ListResponse<T>(
+    int TotalCount,
+    List<T> Items
+);

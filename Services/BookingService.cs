@@ -58,17 +58,39 @@ public class BookingService(
 
         return Result.Success(response);
     }
-
-    public async Task<Result<List<PatientBookingResponse>>> GetMyBookingsAsync(CancellationToken cancellationToken = default)
+    public async Task<Result<ListResponse<PatientBookingResponse>>> GetMyBookingsAsync(
+    RequestFilters filters,
+    CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<List<PatientBookingResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<ListResponse<PatientBookingResponse>>(
+                UserErrors.InvalidJwtToken);
 
-        var bookings = await _context.Bookings
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var query = _context.Bookings
             .AsNoTracking()
-            .Where(b => b.PatientId == userId)
+            .Where(b => b.PatientId == userId);
+
+        if (!string.IsNullOrWhiteSpace(filters.Type))
+        {
+            var type = filters.Type.ToLower();
+
+            if (type == "past")
+            {
+                query = query.Where(b =>
+                    b.DoctorAvailableTime.Date < today);
+            }
+            else if (type == "upcoming")
+            {
+                query = query.Where(b =>
+                    b.DoctorAvailableTime.Date >= today);
+            }
+        }
+
+        var bookings = await query
             .OrderBy(b => b.DoctorAvailableTime.Date)
             .ThenBy(b => b.DoctorAvailableTime.StartTime)
             .Select(b => new PatientBookingResponse(
@@ -78,7 +100,8 @@ public class BookingService(
                     b.DoctorAvailableTime.Doctor.Id,
                     b.DoctorAvailableTime.Doctor.ApplicationUser.FirstName,
                     b.DoctorAvailableTime.Doctor.ApplicationUser.LastName,
-                    b.DoctorAvailableTime.Doctor.Degree.ToString()
+                    b.DoctorAvailableTime.Doctor.Degree,
+                    b.DoctorAvailableTime.Doctor.Speciality
                 ),
                 new SlotInfo(
                     b.DoctorAvailableTime.Id,
@@ -86,12 +109,16 @@ public class BookingService(
                     b.DoctorAvailableTime.StartTime,
                     b.DoctorAvailableTime.EndTime,
                     b.DoctorAvailableTime.ConsultationFee
-                ),
-                b.DoctorAvailableTime.Date >= DateOnly.FromDateTime(DateTime.UtcNow)
+                )
             ))
             .ToListAsync(cancellationToken);
 
-        return Result.Success(bookings);
+        var response = new ListResponse<PatientBookingResponse>(
+            bookings.Count,
+            bookings
+        );
+
+        return Result.Success(response);
     }
 
     public async Task<Result> DeleteAsync(int bookingId, CancellationToken cancellationToken = default)
@@ -119,18 +146,22 @@ public class BookingService(
 
         return Result.Success();
     }
-    public async Task<Result<PaginatedList<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(RequestFilters filters,CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(
+    RequestFilters filters,
+    CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(
+                UserErrors.InvalidJwtToken);
 
         var doctor = await _context.Doctors
             .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
 
         if (doctor is null)
-            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(DoctorErrors.NotFound);
+            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(
+                DoctorErrors.NotFound);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -140,7 +171,7 @@ public class BookingService(
             .Include(b => b.DoctorAvailableTime)
             .Where(b => b.DoctorAvailableTime.DoctorId == doctor.Id);
 
-        if (!string.IsNullOrEmpty(filters.Type))
+        if (!string.IsNullOrWhiteSpace(filters.Type))
         {
             var type = filters.Type.ToLower();
 
@@ -183,18 +214,19 @@ public class BookingService(
             .OrderBy(x => x.Date)
             .ToList();
 
-        var totalCount = grouped.Count;
+        var totalDays = grouped.Count;
 
-        var items = grouped
+        var paginatedItems = grouped
             .Skip((filters.PageNumber - 1) * filters.PageSize)
             .Take(filters.PageSize)
             .ToList();
 
         var paginated = new PaginatedList<DoctorAppointmentsByDateResponse>(
-            items,
-            totalCount,
+            paginatedItems,
             filters.PageNumber,
-            filters.PageSize
+            totalDays,
+            filters.PageSize,
+            bookings.Count
         );
 
         return Result.Success(paginated);

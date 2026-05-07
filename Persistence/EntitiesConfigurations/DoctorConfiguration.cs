@@ -18,5 +18,11 @@ public class DoctorConfiguration : IEntityTypeConfiguration<Doctor>
         builder.Property(d => d.Degree)
             .IsRequired()
             .HasMaxLength(100);
+
+        builder.Property(d => d.Description)
+            .HasMaxLength(1000);
+
+        builder.Property(d => d.IsAccountCompleted)
+            .HasDefaultValue(false);
     }
 }
