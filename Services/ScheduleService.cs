@@ -109,8 +109,8 @@ public class ScheduleService(ApplicationDbContext context,IHttpContextAccessor h
                     x.EndTime,
                     x.ConsultationFee,
                     x.Capacity,
-                    x.Bookings.Count,
-                    x.Capacity - x.Bookings.Count
+                    x.Bookings.Count(b => !b.IsCancelled), 
+                    x.Capacity - x.Bookings.Count(b => !b.IsCancelled)
                 ))
             ));
 
@@ -135,7 +135,7 @@ public class ScheduleService(ApplicationDbContext context,IHttpContextAccessor h
         if (slot.Doctor.UserId != userId)
             return Result.Failure(BookingErrors.Unauthorized);
 
-        if (slot.Bookings.Any())
+        if (slot.Bookings.Any(b => !b.IsCancelled))
             return Result.Failure(BookingErrors.HasBookings);
 
         _context.DoctorAvailableTime.Remove(slot);

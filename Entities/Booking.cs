@@ -3,7 +3,7 @@
 public class Booking
 {
     public int Id { get; set; }
-
+    public bool IsCancelled { get; set; } = false;
     public int DoctorAvailableTimeId { get; set; }
     public DoctorAvailableTime DoctorAvailableTime { get; set; } = default!;
 

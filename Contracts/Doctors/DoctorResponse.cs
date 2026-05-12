@@ -10,5 +10,7 @@ public record DoctorResponse(
     string? ImageUrl,
     string Degree,
     string? Description,
-    bool IsAccountCompleted
+    bool IsAccountCompleted,
+    int CompletedAppointments,
+    int HandledXrays           
 );

@@ -77,4 +77,12 @@ public class DoctorsController(
         var result = await _bookingService.GetDoctorAppointmentsAsync(filters, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
+
+    [HttpGet("me")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
+    {
+        var result = await _doctorService.GetMyProfileAsync(cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
 }

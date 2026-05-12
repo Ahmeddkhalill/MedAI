@@ -3,12 +3,11 @@
 public record DoctorBookingResponse(
     int Id,
     DateTime CreatedAt,
-
+    string Status, 
     string PatientId,
-    string PatientFirstName,
-    string PatientLastName,
-    string PatientEmail,
-
+    string FirstName,
+    string LastName,
+    string Email,
     int SlotId,
     DateOnly Date,
     TimeOnly StartTime,

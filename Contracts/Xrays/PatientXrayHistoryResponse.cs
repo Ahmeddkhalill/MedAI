@@ -6,8 +6,7 @@ public record PatientXrayHistoryResponse(
     string? AI_Diagnosis,
     decimal? AI_Confidence,
     string? FinalDiagnosis,
-    decimal? FinalConfidence,
-    string? DoctorNotes,
+    string? DoctorNotes,     
     bool IsRevised,
     DateTime CreatedAt,
     DateTime? ConfirmedAt

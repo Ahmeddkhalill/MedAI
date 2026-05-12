@@ -24,9 +24,9 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Patient")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
     {
-        var result = await _bookingService.DeleteAsync(id, cancellationToken);
+        var result = await _bookingService.CancelAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : result.ToProblem();
     }
 }

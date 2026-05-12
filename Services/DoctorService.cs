@@ -13,6 +13,8 @@ public class DoctorService(
 
     public async Task<Result<PaginatedList<DoctorResponse>>> GetAllAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
         var query = _context.Doctors
             .AsNoTracking()
             .Include(d => d.ApplicationUser)
@@ -21,7 +23,6 @@ public class DoctorService(
         if (!string.IsNullOrWhiteSpace(filters.SearchValue))
         {
             var search = $"%{filters.SearchValue}%";
-
             query = query.Where(d =>
                 EF.Functions.Like(d.ApplicationUser.FirstName, search) ||
                 EF.Functions.Like(d.ApplicationUser.LastName, search) ||
@@ -39,16 +40,22 @@ public class DoctorService(
             d.ImageUrl,
             d.Degree,
             d.Description,
-            d.IsAccountCompleted
+            d.IsAccountCompleted,
+            d.AvailableTimes
+                .SelectMany(at => at.Bookings)
+                .Count(b => !b.IsCancelled && b.DoctorAvailableTime.Date < today),
+            _context.Xrays
+                .Count(x => x.DoctorId == d.Id && (x.IsEdited || x.IsApproved))
         ));
 
         var response = await PaginatedList<DoctorResponse>.CreateAsync(projected, filters.PageNumber, filters.PageSize);
-
         return Result.Success(response);
     }
 
     public async Task<Result<DoctorResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
         var doctor = await _context.Doctors
             .Include(d => d.ApplicationUser)
             .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
@@ -56,7 +63,44 @@ public class DoctorService(
         if (doctor is null)
             return Result.Failure<DoctorResponse>(DoctorErrors.NotFound);
 
-        return Result.Success(MapToResponse(doctor, doctor.ApplicationUser));
+        var completedAppointments = await _context.Bookings
+            .CountAsync(b => b.DoctorAvailableTime.DoctorId == doctor.Id
+                          && !b.IsCancelled
+                          && b.DoctorAvailableTime.Date < today, cancellationToken);
+
+        var handledXrays = await _context.Xrays
+            .CountAsync(x => x.DoctorId == doctor.Id
+                          && (x.IsEdited || x.IsApproved), cancellationToken);
+
+        return Result.Success(MapToResponse(doctor, doctor.ApplicationUser, completedAppointments, handledXrays));
+    }
+
+    public async Task<Result<DoctorResponse>> GetMyProfileAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is null)
+            return Result.Failure<DoctorResponse>(DoctorErrors.Unauthorized);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var doctor = await _context.Doctors
+            .Include(d => d.ApplicationUser)
+            .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
+
+        if (doctor is null)
+            return Result.Failure<DoctorResponse>(DoctorErrors.NotFound);
+
+        var completedAppointments = await _context.Bookings
+            .CountAsync(b => b.DoctorAvailableTime.DoctorId == doctor.Id
+                          && !b.IsCancelled
+                          && b.DoctorAvailableTime.Date < today, cancellationToken);
+
+        var handledXrays = await _context.Xrays
+            .CountAsync(x => x.DoctorId == doctor.Id
+                          && (x.IsEdited || x.IsApproved), cancellationToken);
+
+        return Result.Success(MapToResponse(doctor, doctor.ApplicationUser, completedAppointments, handledXrays));
     }
 
     public async Task<Result<DoctorResponse>> AddDoctorAsync(AddDoctorRequest request, CancellationToken cancellationToken = default)
@@ -177,7 +221,7 @@ public class DoctorService(
         return Result.Success();
     }
 
-    private static DoctorResponse MapToResponse(Doctor doctor, ApplicationUser user)
+    private static DoctorResponse MapToResponse(Doctor doctor, ApplicationUser user, int completedAppointments = 0, int handledXrays = 0)
     {
         return new DoctorResponse(
             doctor.Id,
@@ -189,7 +233,9 @@ public class DoctorService(
             doctor.ImageUrl,
             doctor.Degree,
             doctor.Description,
-            doctor.IsAccountCompleted
+            doctor.IsAccountCompleted,
+            completedAppointments,
+            handledXrays
         );
     }
 
@@ -207,7 +253,6 @@ public class DoctorService(
 
         using var stream = new FileStream(fullPath, FileMode.Create);
         await image.CopyToAsync(stream, cancellationToken);
-
 
         return $"/images/doctors/{fileName}";
     }

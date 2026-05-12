@@ -15,4 +15,7 @@ public record BookingErrors
 
     public static readonly Error Unauthorized =
         new("Booking.Unauthorized", "You are not authorized to perform this action", StatusCodes.Status401Unauthorized);
+
+    public static readonly Error AlreadyCancelled =
+        new("Booking.AlreadyCancelled", "This booking has already been cancelled", StatusCodes.Status400BadRequest);
 }

@@ -16,9 +16,6 @@ public class XrayConfiguration : IEntityTypeConfiguration<Xray>
         builder.Property(x => x.AI_Confidence)
             .HasColumnType("decimal(5,2)");
 
-        builder.Property(x => x.FinalConfidence)
-            .HasColumnType("decimal(5,2)");
-
         builder.HasOne(x => x.Patient)
             .WithMany()
             .HasForeignKey(x => x.PatientId)

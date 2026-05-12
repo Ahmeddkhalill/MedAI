@@ -21,7 +21,7 @@ public class XrayService(
             return Result.Failure<UploadResponse>(UserErrors.InvalidJwtToken);
 
         var hasUnrevisedXray = await _context.Xrays
-            .AnyAsync(x => x.PatientId == userId && !x.IsRevised, cancellationToken);
+            .AnyAsync(x => x.PatientId == userId && !x.IsEdited && !x.IsApproved, cancellationToken);
 
         if (hasUnrevisedXray)
             return Result.Failure<UploadResponse>(XrayErrors.PendingReview);
@@ -61,9 +61,7 @@ public class XrayService(
         try
         {
             using var doc = JsonDocument.Parse(responseBody);
-
             aiDiagnosis = doc.RootElement.TryGetProperty("class", out var c) ? c.GetString() : null;
-
             aiConfidence = doc.RootElement.TryGetProperty("confidence", out var conf) ? (decimal?)conf.GetDouble() : null;
         }
         catch
@@ -78,8 +76,7 @@ public class XrayService(
             AI_Diagnosis = aiDiagnosis,
             AI_Confidence = aiConfidence,
             FinalDiagnosis = null,
-            FinalConfidence = null,
-            DoctorId = null,
+            DoctorId = null,        // ✅ شيلنا FinalConfidence = null
             IsRevised = false
         };
 
@@ -90,9 +87,8 @@ public class XrayService(
             xray.Id,
             xray.ImageUrl,
             xray.AI_Diagnosis,
-            xray.AI_Confidence,
+            xray.AI_Confidence,     // ✅ بس AI_Confidence
             xray.FinalDiagnosis,
-            xray.FinalConfidence,
             xray.IsRevised,
             xray.CreatedAt,
             xray.ConfirmedAt,
@@ -107,7 +103,7 @@ public class XrayService(
     {
         var query = _context.Xrays
             .AsNoTracking()
-            .Where(x => !x.IsRevised)
+            .Where(x => !x.IsEdited && !x.IsApproved)
             .OrderBy(x => x.CreatedAt)
             .Select(x => new UnrevisedXrayResponse(
                 x.Id,
@@ -119,7 +115,6 @@ public class XrayService(
             ));
 
         var response = await PaginatedList<UnrevisedXrayResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
-
         return Result.Success(response);
     }
 
@@ -146,14 +141,16 @@ public class XrayService(
             return Result.Failure(XrayErrors.AlreadyRevised);
 
         xray.FinalDiagnosis = request.FinalDiagnosis;
-        xray.FinalConfidence = request.FinalConfidence;
+        // ✅ شيلنا FinalConfidence — الكونفدنس بيفضل من الـ AI
         xray.DoctorNotes = request.DoctorNotes;
         xray.DoctorId = doctor.Id;
         xray.IsRevised = true;
         xray.ConfirmedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        xray.IsApproved = string.Equals(request.FinalDiagnosis, xray.AI_Diagnosis, StringComparison.OrdinalIgnoreCase);
+        xray.IsEdited = !xray.IsApproved;
 
+        await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
 
@@ -166,10 +163,7 @@ public class XrayService(
 
         var xray = await _context.Xrays
             .AsNoTracking()
-            .FirstOrDefaultAsync(x =>
-                x.Id == xrayId &&
-                x.PatientId == userId,
-                cancellationToken);
+            .FirstOrDefaultAsync(x => x.Id == xrayId && x.PatientId == userId, cancellationToken);
 
         if (xray is null)
             return Result.Failure<XrayResultResponse>(XrayErrors.NotFound);
@@ -181,7 +175,7 @@ public class XrayService(
             xray.Id,
             xray.ImageUrl,
             xray.FinalDiagnosis,
-            xray.FinalConfidence,
+            xray.AI_Confidence,     // ✅ بدل FinalConfidence
             xray.DoctorNotes,
             xray.ConfirmedAt!.Value
         );
@@ -190,8 +184,8 @@ public class XrayService(
     }
 
     public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(
-    RequestFilters filters,
-    CancellationToken cancellationToken = default)
+        RequestFilters filters,
+        CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
@@ -206,10 +200,9 @@ public class XrayService(
                 x.Id,
                 x.ImageUrl,
                 x.IsRevised ? x.AI_Diagnosis : null,
-                x.IsRevised ? x.AI_Confidence : null,
+                x.IsRevised ? x.AI_Confidence : null,   
                 x.FinalDiagnosis,
-                x.FinalConfidence,
-                x.DoctorNotes,
+                x.DoctorNotes,                          
                 x.IsRevised,
                 x.CreatedAt,
                 x.ConfirmedAt

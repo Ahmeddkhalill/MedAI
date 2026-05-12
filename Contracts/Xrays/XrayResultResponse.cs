@@ -4,7 +4,7 @@ public record XrayResultResponse(
     int Id,
     string ImageUrl,
     string? FinalDiagnosis,
-    decimal? FinalConfidence,
+    decimal? AI_Confidence, 
     string? DoctorNotes,
     DateTime ConfirmedAt
 );

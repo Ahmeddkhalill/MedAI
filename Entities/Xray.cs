@@ -8,8 +8,9 @@ public class Xray
     public decimal? AI_Confidence { get; set; }
     public string? DoctorNotes { get; set; }
     public string? FinalDiagnosis { get; set; }
-    public decimal? FinalConfidence { get; set; }
     public bool IsRevised { get; set; }
+    public bool IsEdited { get; set; } = false;
+    public bool IsApproved { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ConfirmedAt { get; set; }
 

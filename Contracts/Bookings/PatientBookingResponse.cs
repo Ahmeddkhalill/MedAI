@@ -3,6 +3,7 @@
 public record PatientBookingResponse(
     int Id,
     DateTime CreatedAt,
+    string Status, 
     DoctorInfo Doctor,
     SlotInfo Slot
 );

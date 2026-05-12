@@ -1,12 +1,13 @@
 ﻿namespace MedAI.Contracts.Admin;
 
 public record DashboardResponse(
-    int TotalDoctors,
-    int TotalPatients,
-    int TotalBookings,
-    int TotalXrays,
-    int RevisedXrays,
-    int PendingXrays,
-    int UpcomingBookings,
-    int CompletedBookings
+    DoctorStats Doctors,
+    PatientStats Patients,
+    BookingStats Bookings,
+    XrayStats Xrays
 );
+
+public record DoctorStats(int Total);
+public record PatientStats(int Total);
+public record BookingStats(int Total, int Upcoming, int Completed, int Cancelled);
+public record XrayStats(int Total, int Pending, int Edited, int Approved);
