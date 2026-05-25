@@ -1,4 +1,4 @@
-﻿using MedAI.Contracts.Admin;
+﻿using MedAI.Contracts.Dashboard;
 
 namespace MedAI.Services;
 

@@ -13,6 +13,14 @@ public class DoctorsController(
     private readonly IScheduleService _doctorAvailableTimeService = doctorAvailableTimeService;
     private readonly IBookingService _bookingService = bookingService;
 
+    [HttpGet("dashboard")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetDashboard(CancellationToken cancellationToken)
+    {
+        var result = await _doctorService.GetDoctorDashboardAsync(cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetAllDoctors([FromQuery] RequestFilters filters, CancellationToken cancellationToken = default)
@@ -82,7 +90,7 @@ public class DoctorsController(
     [Authorize(Roles = "Doctor")]
     public async Task<IActionResult> GetMyProfile(CancellationToken cancellationToken)
     {
-        var result = await _doctorService.GetMyProfileAsync(cancellationToken);
+        var result = await _doctorService.GetMyProfileAsync(cancellationToken); 
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

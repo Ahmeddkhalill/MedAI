@@ -76,7 +76,7 @@ public class XrayService(
             AI_Diagnosis = aiDiagnosis,
             AI_Confidence = aiConfidence,
             FinalDiagnosis = null,
-            DoctorId = null,        // ✅ شيلنا FinalConfidence = null
+            DoctorId = null,    
             IsRevised = false
         };
 
@@ -87,7 +87,7 @@ public class XrayService(
             xray.Id,
             xray.ImageUrl,
             xray.AI_Diagnosis,
-            xray.AI_Confidence,     // ✅ بس AI_Confidence
+            xray.AI_Confidence,    
             xray.FinalDiagnosis,
             xray.IsRevised,
             xray.CreatedAt,
@@ -98,11 +98,47 @@ public class XrayService(
 
         return Result.Success(response);
     }
+    public async Task<Result<PaginatedList<DoctorXrayHistoryResponse>>> GetMyWorkedXraysAsync(
+    RequestFilters filters,
+    CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
+        if (userId is null)
+            return Result.Failure<PaginatedList<DoctorXrayHistoryResponse>>(UserErrors.InvalidJwtToken);
+
+        var doctor = await _context.Doctors
+            .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
+
+        if (doctor is null)
+            return Result.Failure<PaginatedList<DoctorXrayHistoryResponse>>(DoctorErrors.NotFound);
+
+        var query = _context.Xrays
+            .AsNoTracking()
+            .Include(x => x.Patient)
+            .Where(x => x.DoctorId == doctor.Id && x.IsRevised)
+            .OrderByDescending(x => x.ConfirmedAt)
+            .Select(x => new DoctorXrayHistoryResponse(
+                x.Id,
+                x.ImageUrl,
+                x.Patient.FirstName + " " + x.Patient.LastName,
+                x.FinalDiagnosis,
+                x.DoctorNotes,
+                x.IsEdited,
+                x.IsApproved,
+                x.ConfirmedAt!.Value
+            ));
+
+        var paginatedList = await PaginatedList<DoctorXrayHistoryResponse>
+            .CreateAsync(query, filters.PageNumber, filters.PageSize);
+
+        return Result.Success(paginatedList);
+    }
     public async Task<Result<PaginatedList<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var query = _context.Xrays
             .AsNoTracking()
+            .Include(x => x.Patient)
             .Where(x => !x.IsEdited && !x.IsApproved)
             .OrderBy(x => x.CreatedAt)
             .Select(x => new UnrevisedXrayResponse(
@@ -111,6 +147,7 @@ public class XrayService(
                 x.AI_Diagnosis,
                 x.AI_Confidence,
                 x.PatientId,
+                x.Patient.FirstName + " " + x.Patient.LastName, 
                 x.CreatedAt
             ));
 
@@ -141,7 +178,6 @@ public class XrayService(
             return Result.Failure(XrayErrors.AlreadyRevised);
 
         xray.FinalDiagnosis = request.FinalDiagnosis;
-        // ✅ شيلنا FinalConfidence — الكونفدنس بيفضل من الـ AI
         xray.DoctorNotes = request.DoctorNotes;
         xray.DoctorId = doctor.Id;
         xray.IsRevised = true;
@@ -163,6 +199,8 @@ public class XrayService(
 
         var xray = await _context.Xrays
             .AsNoTracking()
+            .Include(x => x.Doctor)
+                .ThenInclude(d => d!.ApplicationUser)  
             .FirstOrDefaultAsync(x => x.Id == xrayId && x.PatientId == userId, cancellationToken);
 
         if (xray is null)
@@ -175,7 +213,7 @@ public class XrayService(
             xray.Id,
             xray.ImageUrl,
             xray.FinalDiagnosis,
-            xray.AI_Confidence,     // ✅ بدل FinalConfidence
+            xray.Doctor is not null ? xray.Doctor.ApplicationUser.FirstName + " " + xray.Doctor.ApplicationUser.LastName : null,
             xray.DoctorNotes,
             xray.ConfirmedAt!.Value
         );
@@ -183,9 +221,7 @@ public class XrayService(
         return Result.Success(response);
     }
 
-    public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(
-        RequestFilters filters,
-        CancellationToken cancellationToken = default)
+    public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
@@ -194,22 +230,22 @@ public class XrayService(
 
         var query = _context.Xrays
             .AsNoTracking()
+            .Include(x => x.Doctor)
+                .ThenInclude(d => d!.ApplicationUser)
             .Where(x => x.PatientId == userId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new PatientXrayHistoryResponse(
                 x.Id,
                 x.ImageUrl,
-                x.IsRevised ? x.AI_Diagnosis : null,
-                x.IsRevised ? x.AI_Confidence : null,   
                 x.FinalDiagnosis,
-                x.DoctorNotes,                          
+                x.Doctor != null ? x.Doctor.ApplicationUser.FirstName + " " + x.Doctor.ApplicationUser.LastName : null,
+                x.DoctorNotes,
                 x.IsRevised,
                 x.CreatedAt,
                 x.ConfirmedAt
             ));
 
-        var paginatedList = await PaginatedList<PatientXrayHistoryResponse>
-            .CreateAsync(query, filters.PageNumber, filters.PageSize);
+        var paginatedList = await PaginatedList<PatientXrayHistoryResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
 
         return Result.Success(paginatedList);
     }

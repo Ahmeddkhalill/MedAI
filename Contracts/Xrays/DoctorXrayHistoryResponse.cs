@@ -1,10 +1,12 @@
 ﻿namespace MedAI.Contracts.Xrays;
 
-public record XrayResultResponse(
+public record DoctorXrayHistoryResponse(
     int Id,
     string ImageUrl,
+    string PatientName,
     string? FinalDiagnosis,
-    string? DoctorName,  
     string? DoctorNotes,
+    bool IsEdited,
+    bool IsApproved,
     DateTime ConfirmedAt
 );

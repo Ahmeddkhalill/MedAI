@@ -1,4 +1,7 @@
-﻿using MedAI.Contracts.Doctors;
+﻿using MedAI.Contracts.Bookings;
+using MedAI.Contracts.Dashboard;
+using MedAI.Contracts.Doctors;
+using MedAI.Contracts.Xrays;
 
 namespace MedAI.Services;
 
@@ -52,6 +55,88 @@ public class DoctorService(
         return Result.Success(response);
     }
 
+    public async Task<Result<DoctorDashboardResponse>> GetDoctorDashboardAsync(CancellationToken cancellationToken = default)
+    {
+        var userId = _httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (userId is null)
+            return Result.Failure<DoctorDashboardResponse>(DoctorErrors.Unauthorized);
+
+        var doctor = await _context.Doctors
+            .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
+
+        if (doctor is null)
+            return Result.Failure<DoctorDashboardResponse>(DoctorErrors.NotFound);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var todayStart = DateTime.UtcNow.Date;
+        var todayEnd = todayStart.AddDays(1);
+
+        var unrevisedCount = await _context.Xrays
+            .CountAsync(x => !x.IsEdited && !x.IsApproved, cancellationToken);
+
+        var todayAppointmentsCount = await _context.Bookings
+            .CountAsync(b => b.DoctorAvailableTime.DoctorId == doctor.Id
+                          && b.DoctorAvailableTime.Date == today
+                          && !b.IsCancelled, cancellationToken);
+
+        var revisedByMeTodayCount = await _context.Xrays
+            .CountAsync(x => x.DoctorId == doctor.Id
+                          && x.ConfirmedAt >= todayStart
+                          && x.ConfirmedAt < todayEnd, cancellationToken);
+
+        var unrevisedList = await _context.Xrays
+            .AsNoTracking()
+            .Include(x => x.Patient)
+            .Where(x => !x.IsEdited && !x.IsApproved)
+            .OrderBy(x => x.CreatedAt)
+            .Take(3)
+            .Select(x => new UnrevisedXrayResponse(
+                x.Id,
+                x.ImageUrl,
+                x.AI_Diagnosis,
+                x.AI_Confidence,
+                x.PatientId,
+                x.Patient.FirstName + " " + x.Patient.LastName,
+                x.CreatedAt
+            ))
+            .ToListAsync(cancellationToken);
+
+        var todayAppointmentsList = await _context.Bookings
+            .AsNoTracking()
+            .Include(b => b.Patient)
+            .Include(b => b.DoctorAvailableTime)
+            .Where(b => b.DoctorAvailableTime.DoctorId == doctor.Id
+                     && b.DoctorAvailableTime.Date == today
+                     && !b.IsCancelled)
+            .OrderBy(b => b.DoctorAvailableTime.StartTime)
+            .Take(5)
+            .Select(b => new DoctorBookingResponse(
+                b.Id,
+                b.CreatedAt,
+                "Upcoming",
+                b.PatientId,
+                b.Patient.FirstName,
+                b.Patient.LastName,
+                b.Patient.Email!,
+                b.DoctorAvailableTime.Id,
+                b.DoctorAvailableTime.Date,
+                b.DoctorAvailableTime.StartTime,
+                b.DoctorAvailableTime.EndTime,
+                b.DoctorAvailableTime.ConsultationFee
+            ))
+            .ToListAsync(cancellationToken);
+
+        var response = new DoctorDashboardResponse(
+            unrevisedCount,
+            todayAppointmentsCount,
+            revisedByMeTodayCount,
+            unrevisedList,
+            todayAppointmentsList
+        );
+
+        return Result.Success(response);
+    }
     public async Task<Result<DoctorResponse>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);

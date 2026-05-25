@@ -1,4 +1,4 @@
-﻿namespace MedAI.Contracts.Admin;
+﻿namespace MedAI.Contracts.Dashboard;
 
 public record DashboardResponse(
     DoctorStats Doctors,

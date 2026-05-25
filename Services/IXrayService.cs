@@ -8,5 +8,6 @@ public interface IXrayService
     Task<Result<PaginatedList<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result> ConfirmXrayAsync(int xrayId, ConfirmXrayRequest request, CancellationToken cancellationToken = default);
     Task<Result<XrayResultResponse>> GetConfirmedXrayByIdAsync(int xrayId, CancellationToken cancellationToken = default);
+    Task<Result<PaginatedList<DoctorXrayHistoryResponse>>> GetMyWorkedXraysAsync(RequestFilters filters, CancellationToken cancellationToken = default);
     Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(RequestFilters filters,CancellationToken cancellationToken = default);
 }

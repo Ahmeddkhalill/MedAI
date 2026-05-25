@@ -49,4 +49,12 @@ public class XraysController(IXrayService xrayService) : ControllerBase
         var result = await _xrayService.GetMyHistoryAsync(filters, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
+
+    [HttpGet("my-work")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetMyWorkedXrays([FromQuery] RequestFilters filters, CancellationToken cancellationToken)
+    {
+        var result = await _xrayService.GetMyWorkedXraysAsync(filters, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
 }
