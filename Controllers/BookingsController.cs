@@ -18,7 +18,7 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
     [Authorize(Roles = "Patient")]
     public async Task<IActionResult> GetMyBookings([FromQuery] RequestFilters filters, CancellationToken cancellationToken = default)
     {
-        var result = await _bookingService.GetMyBookingsAsync(filters,cancellationToken);
+        var result = await _bookingService.GetMyBookingsAsync(filters, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 
@@ -28,5 +28,13 @@ public class BookingsController(IBookingService bookingService) : ControllerBase
     {
         var result = await _bookingService.CancelAsync(id, cancellationToken);
         return result.IsSuccess ? NoContent() : result.ToProblem();
+    }
+
+    [HttpGet("dashboard")]
+    [Authorize(Roles = "Patient")]
+    public async Task<IActionResult> GetPatientDashboard(CancellationToken cancellationToken)
+    {
+        var result = await _bookingService.GetPatientDashboardAsync(cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }

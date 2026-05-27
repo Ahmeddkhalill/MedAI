@@ -75,7 +75,7 @@ public class BookingService(
 
         var query = _context.Bookings
             .AsNoTracking()
-            .Where(b => b.PatientId == userId);
+            .Where(b => b.PatientId == userId && !b.IsCancelled);
 
         if (!string.IsNullOrWhiteSpace(filters.Type))
         {
@@ -84,15 +84,13 @@ public class BookingService(
             if (type == "upcoming")
             {
                 query = query.Where(b =>
-                    !b.IsCancelled &&
-                    (b.DoctorAvailableTime.Date > today ||
+                    b.DoctorAvailableTime.Date > today ||
                     (b.DoctorAvailableTime.Date == today &&
-                     b.DoctorAvailableTime.EndTime > currentTime)));
+                     b.DoctorAvailableTime.EndTime > currentTime));
             }
             else if (type == "past")
             {
                 query = query.Where(b =>
-                    b.IsCancelled ||
                     b.DoctorAvailableTime.Date < today ||
                     (b.DoctorAvailableTime.Date == today &&
                      b.DoctorAvailableTime.EndTime <= currentTime));

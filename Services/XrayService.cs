@@ -98,9 +98,8 @@ public class XrayService(
 
         return Result.Success(response);
     }
-    public async Task<Result<PaginatedList<DoctorXrayHistoryResponse>>> GetMyWorkedXraysAsync(
-    RequestFilters filters,
-    CancellationToken cancellationToken = default)
+    
+    public async Task<Result<PaginatedList<DoctorXrayHistoryResponse>>> GetMyWorkedXraysAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
@@ -134,6 +133,7 @@ public class XrayService(
 
         return Result.Success(paginatedList);
     }
+    
     public async Task<Result<PaginatedList<UnrevisedXrayResponse>>> GetUnrevisedXraysAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var query = _context.Xrays
@@ -154,7 +154,7 @@ public class XrayService(
         var response = await PaginatedList<UnrevisedXrayResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
         return Result.Success(response);
     }
-
+    
     public async Task<Result> ConfirmXrayAsync(int xrayId, ConfirmXrayRequest request, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
@@ -189,7 +189,7 @@ public class XrayService(
         await _context.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
-
+    
     public async Task<Result<XrayResultResponse>> GetConfirmedXrayByIdAsync(int xrayId, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
@@ -220,7 +220,7 @@ public class XrayService(
 
         return Result.Success(response);
     }
-
+    
     public async Task<Result<PaginatedList<PatientXrayHistoryResponse>>> GetMyHistoryAsync(RequestFilters filters, CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
