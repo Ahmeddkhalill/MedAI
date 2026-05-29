@@ -60,15 +60,15 @@ public class BookingService(
 
         return Result.Success(response);
     }
-
     public async Task<Result<ListResponse<PatientBookingResponse>>> GetMyBookingsAsync(
-        RequestFilters filters,
-        CancellationToken cancellationToken = default)
+    RequestFilters filters,
+    CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<ListResponse<PatientBookingResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<ListResponse<PatientBookingResponse>>(
+                UserErrors.InvalidJwtToken);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var currentTime = TimeOnly.FromDateTime(DateTime.UtcNow);
@@ -105,6 +105,7 @@ public class BookingService(
                 b.Id,
                 b.CreatedAt,
                 b.IsCancelled,
+
                 Doctor = new DoctorInfo(
                     b.DoctorAvailableTime.Doctor.Id,
                     b.DoctorAvailableTime.Doctor.ApplicationUser.FirstName,
@@ -112,6 +113,7 @@ public class BookingService(
                     b.DoctorAvailableTime.Doctor.Degree,
                     b.DoctorAvailableTime.Doctor.Speciality
                 ),
+
                 Slot = new SlotInfo(
                     b.DoctorAvailableTime.Id,
                     b.DoctorAvailableTime.Date,
@@ -119,6 +121,7 @@ public class BookingService(
                     b.DoctorAvailableTime.EndTime,
                     b.DoctorAvailableTime.ConsultationFee
                 ),
+
                 b.DoctorAvailableTime.Date,
                 b.DoctorAvailableTime.EndTime
             })
@@ -132,8 +135,14 @@ public class BookingService(
             b.Slot
         )).ToList();
 
-        return Result.Success(new ListResponse<PatientBookingResponse>(mapped.Count, mapped));
+        var response = new ListResponse<PatientBookingResponse>(
+            mapped.Count,
+            mapped
+        );
+
+        return Result.Success(response);
     }
+
 
     public async Task<Result> CancelAsync(int bookingId, CancellationToken cancellationToken = default)
     {
@@ -166,19 +175,21 @@ public class BookingService(
     }
 
     public async Task<Result<PaginatedList<DoctorAppointmentsByDateResponse>>> GetDoctorAppointmentsAsync(
-        RequestFilters filters,
-        CancellationToken cancellationToken = default)
+ RequestFilters filters,
+ CancellationToken cancellationToken = default)
     {
         var userId = _httpContextAccessor.HttpContext?.User.GetUserId();
 
         if (userId is null)
-            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(UserErrors.InvalidJwtToken);
+            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(
+                UserErrors.InvalidJwtToken);
 
         var doctor = await _context.Doctors
             .FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
 
         if (doctor is null)
-            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(DoctorErrors.NotFound);
+            return Result.Failure<PaginatedList<DoctorAppointmentsByDateResponse>>(
+                DoctorErrors.NotFound);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var currentTime = TimeOnly.FromDateTime(DateTime.UtcNow);
@@ -196,18 +207,20 @@ public class BookingService(
             if (type == "upcoming")
             {
                 query = query.Where(b =>
-                    !b.IsCancelled &&
-                    (b.DoctorAvailableTime.Date > today ||
-                    (b.DoctorAvailableTime.Date == today &&
-                     b.DoctorAvailableTime.EndTime > currentTime)));
+                    b.DoctorAvailableTime.Date > today ||
+                    (
+                        b.DoctorAvailableTime.Date == today &&
+                        b.DoctorAvailableTime.EndTime > currentTime
+                    ));
             }
             else if (type == "past")
             {
                 query = query.Where(b =>
-                    b.IsCancelled ||
                     b.DoctorAvailableTime.Date < today ||
-                    (b.DoctorAvailableTime.Date == today &&
-                     b.DoctorAvailableTime.EndTime <= currentTime));
+                    (
+                        b.DoctorAvailableTime.Date == today &&
+                        b.DoctorAvailableTime.EndTime <= currentTime
+                    ));
             }
         }
 
@@ -223,6 +236,7 @@ public class BookingService(
                 b.Patient.FirstName,
                 b.Patient.LastName,
                 Email = b.Patient.Email!,
+
                 SlotId = b.DoctorAvailableTime.Id,
                 b.DoctorAvailableTime.Date,
                 b.DoctorAvailableTime.StartTime,
@@ -248,7 +262,10 @@ public class BookingService(
 
         var grouped = mapped
             .GroupBy(b => b.Date)
-            .Select(g => new DoctorAppointmentsByDateResponse(g.Key, g.ToList()))
+            .Select(g => new DoctorAppointmentsByDateResponse(
+                g.Key,
+                g.ToList()
+            ))
             .OrderBy(x => x.Date)
             .ToList();
 
@@ -258,7 +275,12 @@ public class BookingService(
             .ToList();
 
         var paginated = new PaginatedList<DoctorAppointmentsByDateResponse>(
-            paginatedItems, filters.PageNumber, grouped.Count, filters.PageSize, mapped.Count);
+            paginatedItems,
+            filters.PageNumber,
+            grouped.Count,
+            filters.PageSize,
+            mapped.Count
+        );
 
         return Result.Success(paginated);
     }
