@@ -3,8 +3,10 @@
 public record PatientXrayHistoryResponse(
     int Id,
     string ImageUrl,
+    string? AI_Diagnosis,
+    decimal? AI_Confidence,
     string? FinalDiagnosis,
-    string? DoctorName,    
+    string? DoctorName,
     string? DoctorNotes,
     bool IsRevised,
     DateTime CreatedAt,

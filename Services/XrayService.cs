@@ -235,15 +235,17 @@ public class XrayService(
             .Where(x => x.PatientId == userId)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new PatientXrayHistoryResponse(
-                x.Id,
-                x.ImageUrl,
-                x.FinalDiagnosis,
-                x.Doctor != null ? x.Doctor.ApplicationUser.FirstName + " " + x.Doctor.ApplicationUser.LastName : null,
-                x.DoctorNotes,
-                x.IsRevised,
-                x.CreatedAt,
-                x.ConfirmedAt
-            ));
+                    x.Id,
+                    x.ImageUrl,
+                    x.AI_Diagnosis,
+                    x.AI_Confidence,
+                    x.FinalDiagnosis,
+                    x.Doctor != null ? x.Doctor.ApplicationUser.FirstName + " " + x.Doctor.ApplicationUser.LastName : null,
+                    x.DoctorNotes,
+                    x.IsRevised,
+                    x.CreatedAt,
+                    x.ConfirmedAt
+                ));
 
         var paginatedList = await PaginatedList<PatientXrayHistoryResponse>.CreateAsync(query, filters.PageNumber, filters.PageSize);
 
