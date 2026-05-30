@@ -313,8 +313,6 @@ public class BookingService(
             .Select(x => new PatientXrayHistoryResponse(
                 x.Id,
                 x.ImageUrl,
-                x.AI_Diagnosis,
-                x.AI_Confidence,
                 x.FinalDiagnosis,
                 x.Doctor != null
                     ? x.Doctor.ApplicationUser.FirstName + " " + x.Doctor.ApplicationUser.LastName

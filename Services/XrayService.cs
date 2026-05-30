@@ -121,6 +121,8 @@ public class XrayService(
                 x.Id,
                 x.ImageUrl,
                 x.Patient.FirstName + " " + x.Patient.LastName,
+                x.AI_Diagnosis,
+                x.AI_Confidence,
                 x.FinalDiagnosis,
                 x.DoctorNotes,
                 x.IsEdited,
@@ -237,8 +239,6 @@ public class XrayService(
             .Select(x => new PatientXrayHistoryResponse(
                     x.Id,
                     x.ImageUrl,
-                    x.AI_Diagnosis,
-                    x.AI_Confidence,
                     x.FinalDiagnosis,
                     x.Doctor != null ? x.Doctor.ApplicationUser.FirstName + " " + x.Doctor.ApplicationUser.LastName : null,
                     x.DoctorNotes,
