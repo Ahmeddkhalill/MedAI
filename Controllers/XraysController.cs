@@ -4,7 +4,6 @@ namespace MedAI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-
 public class XraysController(IXrayService xrayService) : ControllerBase
 {
     private readonly IXrayService _xrayService = xrayService;
@@ -25,6 +24,13 @@ public class XraysController(IXrayService xrayService) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 
+    [HttpGet("unrevised/{xrayId}")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetUnrevisedXrayById(int xrayId, CancellationToken cancellationToken)
+    {
+        var result = await _xrayService.GetUnrevisedXrayByIdAsync(xrayId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
 
     [HttpPost("{xrayId}/confirm")]
     [Authorize(Roles = "Doctor")]
@@ -35,7 +41,7 @@ public class XraysController(IXrayService xrayService) : ControllerBase
     }
 
     [HttpGet("{xrayId}")]
-    [Authorize(Roles = "Doctor,Patient")]
+    [Authorize(Roles = "Patient")]
     public async Task<IActionResult> GetConfirmedXrayById(int xrayId, CancellationToken cancellationToken)
     {
         var result = await _xrayService.GetConfirmedXrayByIdAsync(xrayId, cancellationToken);
@@ -55,6 +61,14 @@ public class XraysController(IXrayService xrayService) : ControllerBase
     public async Task<IActionResult> GetMyWorkedXrays([FromQuery] RequestFilters filters, CancellationToken cancellationToken)
     {
         var result = await _xrayService.GetMyWorkedXraysAsync(filters, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
+    }
+
+    [HttpGet("my-work/{xrayId}")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> GetMyWorkedXrayById(int xrayId, CancellationToken cancellationToken)
+    {
+        var result = await _xrayService.GetMyWorkedXrayByIdAsync(xrayId, cancellationToken);
         return result.IsSuccess ? Ok(result.Value) : result.ToProblem();
     }
 }
