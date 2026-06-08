@@ -29,6 +29,7 @@ public class DoctorService(
             query = query.Where(d =>
                 EF.Functions.Like(d.ApplicationUser.FirstName, search) ||
                 EF.Functions.Like(d.ApplicationUser.LastName, search) ||
+                EF.Functions.Like(d.ApplicationUser.FirstName + " " + d.ApplicationUser.LastName, search) ||
                 EF.Functions.Like(d.Speciality, search)
             );
         }

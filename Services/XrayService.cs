@@ -204,6 +204,8 @@ public class XrayService(
             xray.Doctor is not null
                 ? xray.Doctor.ApplicationUser.FirstName + " " + xray.Doctor.ApplicationUser.LastName
                 : null,
+            xray.Doctor?.Speciality,
+            xray.Doctor?.Degree,
             xray.DoctorNotes,
             xray.ConfirmedAt!.Value
         );
